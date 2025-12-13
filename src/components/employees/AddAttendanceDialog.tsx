@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { CalendarIcon } from 'lucide-react';
 import { format, subDays, eachDayOfInterval, isWeekend } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,13 @@ import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status'];
+
+interface WorkSession {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+}
 
 interface AddAttendanceDialogProps {
   open: boolean;
@@ -25,17 +32,41 @@ interface AddAttendanceDialogProps {
 
 export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, onSuccess }: AddAttendanceDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
   const [mode, setMode] = useState<'single' | 'range'>('single');
   const [singleDate, setSingleDate] = useState<Date | undefined>(subDays(new Date(), 1));
   const [startDate, setStartDate] = useState<Date | undefined>(subDays(new Date(), 20));
   const [endDate, setEndDate] = useState<Date | undefined>(subDays(new Date(), 1));
   const [status, setStatus] = useState<AttendanceStatus>('present');
-  const [signInTime, setSignInTime] = useState('09:00');
-  const [signOutTime, setSignOutTime] = useState('18:00');
+  const [sessionId, setSessionId] = useState<string>('');
   const [skipWeekends, setSkipWeekends] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      fetchWorkSessions();
+    }
+  }, [open]);
+
+  const fetchWorkSessions = async () => {
+    const { data } = await supabase
+      .from('work_sessions')
+      .select('*')
+      .eq('is_active', true)
+      .order('start_time');
+    
+    if (data && data.length > 0) {
+      setWorkSessions(data);
+      setSessionId(data[0].id);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!sessionId) {
+      toast.error('Please select a work session');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -55,13 +86,20 @@ export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, 
         return;
       }
 
+      const selectedSession = workSessions.find(s => s.id === sessionId);
+      if (!selectedSession) {
+        toast.error('Invalid session selected');
+        return;
+      }
+
       const records = dates.map(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
         return {
           user_id: userId,
-          sign_in_time: `${dateStr}T${signInTime}:00`,
-          sign_out_time: `${dateStr}T${signOutTime}:00`,
+          sign_in_time: `${dateStr}T${selectedSession.start_time}`,
+          sign_out_time: `${dateStr}T${selectedSession.end_time}`,
           status,
+          session_id: sessionId,
         };
       });
 
@@ -109,8 +147,8 @@ export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, 
                     {singleDate ? format(singleDate, 'PPP') : 'Pick a date'}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar mode="single" selected={singleDate} onSelect={setSingleDate} disabled={(date) => date > new Date()} />
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar mode="single" selected={singleDate} onSelect={setSingleDate} disabled={(date) => date > new Date()} className="pointer-events-auto" />
                 </PopoverContent>
               </Popover>
             </div>
@@ -126,8 +164,8 @@ export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, 
                         {startDate ? format(startDate, 'PP') : 'Pick'}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={startDate} onSelect={setStartDate} disabled={(date) => date > new Date()} />
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={startDate} onSelect={setStartDate} disabled={(date) => date > new Date()} className="pointer-events-auto" />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -140,24 +178,38 @@ export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, 
                         {endDate ? format(endDate, 'PP') : 'Pick'}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={(date) => date > new Date()} />
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={(date) => date > new Date()} className="pointer-events-auto" />
                     </PopoverContent>
                   </Popover>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+                <Checkbox
                   id="skipWeekends"
                   checked={skipWeekends}
-                  onChange={(e) => setSkipWeekends(e.target.checked)}
-                  className="rounded border-border"
+                  onCheckedChange={(checked) => setSkipWeekends(!!checked)}
                 />
                 <Label htmlFor="skipWeekends" className="text-sm">Skip weekends</Label>
               </div>
             </>
           )}
+
+          <div className="space-y-2">
+            <Label>Work Session</Label>
+            <Select value={sessionId} onValueChange={setSessionId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select session" />
+              </SelectTrigger>
+              <SelectContent>
+                {workSessions.map((session) => (
+                  <SelectItem key={session.id} value={session.id}>
+                    {session.name} ({session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label>Status</Label>
@@ -173,22 +225,11 @@ export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, 
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Sign In Time</Label>
-              <Input type="time" value={signInTime} onChange={(e) => setSignInTime(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Sign Out Time</Label>
-              <Input type="time" value={signOutTime} onChange={(e) => setSignOutTime(e.target.value)} />
-            </div>
-          </div>
-
           <div className="flex gap-3 justify-end pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading || !sessionId}>
               {loading ? 'Adding...' : 'Add Attendance'}
             </Button>
           </div>

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Settings2, Shield } from 'lucide-react';
+import { Settings2, Shield, Clock, Plus, Trash2 } from 'lucide-react';
 
 interface PayrollConfig {
   pf_enabled: boolean;
@@ -19,10 +19,20 @@ interface PayrollConfig {
   epf_percentage: number;
 }
 
+interface WorkSession {
+  id: string;
+  name: string;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+}
+
 export default function Settings() {
   const { role } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
+  const [newSession, setNewSession] = useState({ name: '', start_time: '09:00', end_time: '18:00' });
   const [config, setConfig] = useState<PayrollConfig>({
     pf_enabled: false,
     pf_percentage: 12,
@@ -34,6 +44,7 @@ export default function Settings() {
 
   useEffect(() => {
     fetchSettings();
+    fetchWorkSessions();
   }, []);
 
   const fetchSettings = async () => {
@@ -51,6 +62,45 @@ export default function Settings() {
       console.error('Error fetching settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWorkSessions = async () => {
+    const { data } = await supabase
+      .from('work_sessions')
+      .select('*')
+      .order('start_time');
+    if (data) setWorkSessions(data);
+  };
+
+  const handleAddSession = async () => {
+    if (!newSession.name.trim()) {
+      toast.error('Please enter a session name');
+      return;
+    }
+
+    const { error } = await supabase.from('work_sessions').insert([{
+      name: newSession.name,
+      start_time: newSession.start_time,
+      end_time: newSession.end_time,
+    }]);
+
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Session added');
+      setNewSession({ name: '', start_time: '09:00', end_time: '18:00' });
+      fetchWorkSessions();
+    }
+  };
+
+  const handleDeleteSession = async (id: string) => {
+    const { error } = await supabase.from('work_sessions').delete().eq('id', id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Session deleted');
+      fetchWorkSessions();
     }
   };
 
@@ -117,8 +167,68 @@ export default function Settings() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Company Settings</h1>
-          <p className="text-muted-foreground mt-1">Configure payroll deductions and company policies</p>
+          <p className="text-muted-foreground mt-1">Configure work sessions, payroll deductions and company policies</p>
         </div>
+
+        {/* Work Sessions Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Work Sessions
+            </CardTitle>
+            <CardDescription>
+              Define work sessions that employees can select when marking attendance.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              {workSessions.map((session) => (
+                <div key={session.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div>
+                    <p className="font-medium text-foreground">{session.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteSession(session.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="pt-4 border-t border-border">
+              <Label className="text-sm font-medium mb-3 block">Add New Session</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <Input
+                  placeholder="Session name"
+                  value={newSession.name}
+                  onChange={(e) => setNewSession(prev => ({ ...prev, name: e.target.value }))}
+                  className="sm:col-span-2"
+                />
+                <Input
+                  type="time"
+                  value={newSession.start_time}
+                  onChange={(e) => setNewSession(prev => ({ ...prev, start_time: e.target.value }))}
+                />
+                <Input
+                  type="time"
+                  value={newSession.end_time}
+                  onChange={(e) => setNewSession(prev => ({ ...prev, end_time: e.target.value }))}
+                />
+              </div>
+              <Button onClick={handleAddSession} className="mt-3">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Session
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
