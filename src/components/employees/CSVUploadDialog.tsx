@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -176,6 +176,7 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Import Employees from CSV</DialogTitle>
+          <DialogDescription>Upload a CSV file with employee data to bulk import.</DialogDescription>
         </DialogHeader>
 
         {showResults ? (
