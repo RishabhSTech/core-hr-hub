@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Payroll as PayrollType, Profile } from '@/types/hrms';
-import { DollarSign, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, Users } from 'lucide-react';
 
 export default function Payroll() {
   const { user, profile, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const [payrolls, setPayrolls] = useState<PayrollType[]>([]);
+  const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>(`${new Date().getMonth() + 1}`);
   const [selectedYear, setSelectedYear] = useState<string>(`${new Date().getFullYear()}`);
   const [loading, setLoading] = useState(true);
@@ -20,13 +24,25 @@ export default function Payroll() {
       if (!user) return;
 
       try {
-        const query = isAdmin
+        // Employees only see their own payroll
+        const payrollQuery = isAdmin
           ? supabase.from('payroll').select('*').order('created_at', { ascending: false })
           : supabase.from('payroll').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
 
-        const { data } = await query;
-        if (data) {
-          setPayrolls(data as PayrollType[]);
+        const { data: payrollData } = await payrollQuery;
+        if (payrollData) {
+          setPayrolls(payrollData as PayrollType[]);
+        }
+
+        // Only admins can see all profiles for payroll overview
+        if (isAdmin) {
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('first_name');
+          if (profilesData) {
+            setAllProfiles(profilesData as unknown as Profile[]);
+          }
         }
       } catch (error) {
         console.error('Error fetching payroll:', error);
@@ -58,18 +74,21 @@ export default function Payroll() {
     }
   };
 
-  // Calculate estimated salary based on profile data
+  // Calculate totals for admin view
+  const totalSalaryBudget = allProfiles.reduce((sum, p) => sum + Number(p.monthly_salary || 0), 0);
   const estimatedSalary = profile?.monthly_salary || 0;
-  const perDaySalary = estimatedSalary / 30;
+  const perDaySalary = Number(estimatedSalary) / 30;
 
   return (
     <AppLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Payroll</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {isAdmin ? 'Payroll Management' : 'My Payroll'}
+            </h1>
             <p className="text-muted-foreground mt-1">
-              View your salary and payroll details
+              {isAdmin ? 'View and manage employee payroll' : 'View your salary and payroll details'}
             </p>
           </div>
           <div className="flex gap-2">
@@ -96,116 +115,218 @@ export default function Payroll() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Base Salary</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    ₹{Number(estimatedSalary).toLocaleString()}
-                  </p>
-                </div>
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                  <DollarSign className="h-5 w-5" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {isAdmin ? (
+          // Admin View - Payroll Overview
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Monthly Budget</p>
+                      <p className="text-2xl font-bold text-foreground mt-1">
+                        ₹{totalSalaryBudget.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Per Day Rate</p>
-                  <p className="text-2xl font-bold text-foreground mt-1">
-                    ₹{Math.round(perDaySalary).toLocaleString()}
-                  </p>
-                </div>
-                <div className="p-2 rounded-lg bg-green-100 text-green-600">
-                  <TrendingUp className="h-5 w-5" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Employees</p>
+                      <p className="text-2xl font-bold text-foreground mt-1">
+                        {allProfiles.length}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-green-100 text-green-600">
+                      <Users className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Salary Type</p>
-                  <p className="text-2xl font-bold text-foreground mt-1 capitalize">
-                    {profile?.salary_type || 'Fixed'}
-                  </p>
-                </div>
-                <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
-                  <Calendar className="h-5 w-5" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Avg. Salary</p>
+                      <p className="text-2xl font-bold text-foreground mt-1">
+                        ₹{Math.round(totalSalaryBudget / Math.max(allProfiles.length, 1)).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">
-              Payroll Details - {months[parseInt(selectedMonth) - 1]} {selectedYear}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-center py-8 text-muted-foreground">Loading...</p>
-            ) : currentPayroll ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Status</span>
-                  {getStatusBadge(currentPayroll.status)}
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-lg bg-accent/50">
-                    <p className="text-sm text-muted-foreground">Working Days</p>
-                    <p className="text-xl font-bold text-foreground">{currentPayroll.working_days}</p>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">
+                  Employee Salaries - {months[parseInt(selectedMonth) - 1]} {selectedYear}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p className="text-center py-8 text-muted-foreground">Loading...</p>
+                ) : allProfiles.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No employees found</p>
+                ) : (
+                  <div className="space-y-3">
+                    {allProfiles.map((emp) => (
+                      <div 
+                        key={emp.id} 
+                        className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                              {emp.first_name?.[0]}{emp.last_name?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {emp.first_name} {emp.last_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">{emp.employee_id}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-foreground">
+                            ₹{Number(emp.monthly_salary || 0).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-muted-foreground capitalize">{emp.salary_type}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="p-4 rounded-lg bg-green-50">
-                    <p className="text-sm text-muted-foreground">Present Days</p>
-                    <p className="text-xl font-bold text-green-700">{currentPayroll.present_days}</p>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          // Employee View - Personal Payroll Only
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Base Salary</p>
+                      <p className="text-2xl font-bold text-foreground mt-1">
+                        ₹{Number(estimatedSalary).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
                   </div>
-                  <div className="p-4 rounded-lg bg-blue-50">
-                    <p className="text-sm text-muted-foreground">Paid Leave</p>
-                    <p className="text-xl font-bold text-blue-700">{currentPayroll.paid_leave_days}</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-red-50">
-                    <p className="text-sm text-muted-foreground">Unpaid Leave</p>
-                    <p className="text-xl font-bold text-red-700">{currentPayroll.unpaid_leave_days}</p>
-                  </div>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="border-t border-border pt-4 space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Base Salary</span>
-                    <span className="font-medium">₹{Number(currentPayroll.base_salary).toLocaleString()}</span>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Per Day Rate</p>
+                      <p className="text-2xl font-bold text-foreground mt-1">
+                        ₹{Math.round(perDaySalary).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-green-100 text-green-600">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
                   </div>
-                  <div className="flex justify-between text-destructive">
-                    <span>Deductions</span>
-                    <span className="font-medium">- ₹{Number(currentPayroll.deductions).toLocaleString()}</span>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Salary Type</p>
+                      <p className="text-2xl font-bold text-foreground mt-1 capitalize">
+                        {profile?.salary_type || 'Fixed'}
+                      </p>
+                    </div>
+                    <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+                      <Calendar className="h-5 w-5" />
+                    </div>
                   </div>
-                  <div className="flex justify-between text-lg font-bold border-t border-border pt-3">
-                    <span>Net Salary</span>
-                    <span className="text-green-600">₹{Number(currentPayroll.net_salary).toLocaleString()}</span>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">
+                  Payroll Details - {months[parseInt(selectedMonth) - 1]} {selectedYear}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <p className="text-center py-8 text-muted-foreground">Loading...</p>
+                ) : currentPayroll ? (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Status</span>
+                      {getStatusBadge(currentPayroll.status)}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-4 rounded-lg bg-accent/50">
+                        <p className="text-sm text-muted-foreground">Working Days</p>
+                        <p className="text-xl font-bold text-foreground">{currentPayroll.working_days}</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-green-50">
+                        <p className="text-sm text-muted-foreground">Present Days</p>
+                        <p className="text-xl font-bold text-green-700">{currentPayroll.present_days}</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-blue-50">
+                        <p className="text-sm text-muted-foreground">Paid Leave</p>
+                        <p className="text-xl font-bold text-blue-700">{currentPayroll.paid_leave_days}</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-red-50">
+                        <p className="text-sm text-muted-foreground">Unpaid Leave</p>
+                        <p className="text-xl font-bold text-red-700">{currentPayroll.unpaid_leave_days}</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border pt-4 space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Base Salary</span>
+                        <span className="font-medium">₹{Number(currentPayroll.base_salary).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-destructive">
+                        <span>Deductions</span>
+                        <span className="font-medium">- ₹{Number(currentPayroll.deductions).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold border-t border-border pt-3">
+                        <span>Net Salary</span>
+                        <span className="text-green-600">₹{Number(currentPayroll.net_salary).toLocaleString()}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground mb-2">No payroll record found for this month</p>
-                <p className="text-sm text-muted-foreground">
-                  Payroll will be generated based on your attendance and leave records
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-2">No payroll record found for this month</p>
+                    <p className="text-sm text-muted-foreground">
+                      Payroll will be generated based on your attendance and leave records
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </AppLayout>
   );
