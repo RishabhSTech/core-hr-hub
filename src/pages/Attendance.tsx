@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { AttendanceSession } from '@/types/hrms';
-import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { startOfMonth, endOfMonth, format, isSameDay } from 'date-fns';
 
 export default function Attendance() {
   const { user } = useAuth();
@@ -40,9 +40,8 @@ export default function Attendance() {
         setSessions(data as AttendanceSession[]);
         
         // Check for current session
-        const today = format(now, 'yyyy-MM-dd');
-        const todaySession = data.find(s => 
-          s.sign_in_time.startsWith(today) && !s.sign_out_time
+        const todaySession = data.find((s) =>
+          isSameDay(new Date(s.sign_in_time), now) && !s.sign_out_time
         );
         setCurrentSession(todaySession as AttendanceSession | null);
 
