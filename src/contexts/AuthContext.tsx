@@ -72,7 +72,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (profileResult.data) {
-        setProfile(profileResult.data as unknown as Profile);
+        const profileData: any = { ...profileResult.data };
+        
+        // Fetch reporting manager info if exists
+        if (profileData.reporting_manager_id) {
+          const { data: managerData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', profileData.reporting_manager_id)
+            .maybeSingle();
+          
+          if (managerData) {
+            profileData.reporting_manager = managerData;
+          }
+        }
+        
+        setProfile(profileData as Profile);
       }
       if (roleResult.data) {
         setRole(roleResult.data.role as AppRole);

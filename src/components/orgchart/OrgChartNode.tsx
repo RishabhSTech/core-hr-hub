@@ -8,9 +8,10 @@ interface OrgChartNodeProps {
   role: string;
   children?: Profile[];
   roles: Record<string, string>;
+  isClickable?: boolean;
 }
 
-export function OrgChartNode({ profile, role, children = [], roles }: OrgChartNodeProps) {
+export function OrgChartNode({ profile, role, children = [], roles, isClickable = false }: OrgChartNodeProps) {
   const navigate = useNavigate();
 
   const getInitials = () => {
@@ -26,11 +27,17 @@ export function OrgChartNode({ profile, role, children = [], roles }: OrgChartNo
     }
   };
 
+  const handleClick = () => {
+    if (isClickable) {
+      navigate(`/employees/${profile.id}`);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center">
       <Card 
-        className={`p-4 cursor-pointer transition-shadow hover:shadow-md ${getRoleColor()}`}
-        onClick={() => navigate(`/employees/${profile.id}`)}
+        className={`p-4 transition-shadow ${getRoleColor()} ${isClickable ? 'cursor-pointer hover:shadow-md' : ''}`}
+        onClick={handleClick}
       >
         <div className="flex flex-col items-center text-center">
           <Avatar className="h-12 w-12 mb-2">
@@ -59,6 +66,7 @@ export function OrgChartNode({ profile, role, children = [], roles }: OrgChartNo
                   profile={child} 
                   role={roles[child.user_id] || 'employee'} 
                   roles={roles}
+                  isClickable={isClickable}
                 />
               </div>
             ))}

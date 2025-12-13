@@ -120,7 +120,14 @@ export default function Leaves() {
 
   const handleApprove = async (request: LeaveRequest) => {
     try {
-      const { error } = await supabase
+      // Calculate number of leave days
+      const startDate = new Date(request.start_date);
+      const endDate = new Date(request.end_date);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const leaveDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      // Update leave request status
+      const { error: updateError } = await supabase
         .from('leave_requests')
         .update({
           status: 'approved',
@@ -129,7 +136,30 @@ export default function Leaves() {
         })
         .eq('id', request.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      // Deduct from leave balance (only for casual, sick, paid leaves)
+      if (request.leave_type !== 'unpaid') {
+        const leaveTypeColumn = `${request.leave_type}_leave` as 'casual_leave' | 'sick_leave' | 'paid_leave';
+        
+        // Get current balance
+        const { data: balanceData } = await supabase
+          .from('leave_balances')
+          .select('*')
+          .eq('user_id', request.user_id)
+          .maybeSingle();
+
+        if (balanceData) {
+          const currentBalance = Number(balanceData[leaveTypeColumn] || 0);
+          const newBalance = Math.max(0, currentBalance - leaveDays);
+
+          await supabase
+            .from('leave_balances')
+            .update({ [leaveTypeColumn]: newBalance })
+            .eq('user_id', request.user_id);
+        }
+      }
+
       toast.success('Leave request approved');
       fetchData();
     } catch (error) {
