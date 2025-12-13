@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { OrgChartNode } from '@/components/orgchart/OrgChartNode';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,17 +8,11 @@ import { Profile, UserRole } from '@/types/hrms';
 
 export default function OrgChart() {
   const { isAdmin } = useAuth();
-  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAdmin) {
-      navigate('/dashboard');
-      return;
-    }
-
     const fetchData = async () => {
       try {
         const [profilesResult, rolesResult] = await Promise.all([
@@ -46,9 +39,7 @@ export default function OrgChart() {
     };
 
     fetchData();
-  }, [isAdmin, navigate]);
-
-  if (!isAdmin) return null;
+  }, []);
 
   // Build hierarchy
   const owner = profiles.find(p => roles[p.user_id] === 'owner');
@@ -82,6 +73,7 @@ export default function OrgChart() {
                       profile={owner} 
                       role="owner" 
                       roles={roles}
+                      isClickable={isAdmin}
                     />
                     
                     {(admins.length > 0 || managers.length > 0) && (
@@ -96,6 +88,7 @@ export default function OrgChart() {
                                 role="admin"
                                 children={getReportees(admin.id)}
                                 roles={roles}
+                                isClickable={isAdmin}
                               />
                             </div>
                           ))}
@@ -107,6 +100,7 @@ export default function OrgChart() {
                                 role="manager"
                                 children={getReportees(manager.id)}
                                 roles={roles}
+                                isClickable={isAdmin}
                               />
                             </div>
                           ))}
@@ -125,6 +119,7 @@ export default function OrgChart() {
                                 profile={emp} 
                                 role="employee"
                                 roles={roles}
+                                isClickable={isAdmin}
                               />
                             </div>
                           ))}
@@ -142,6 +137,7 @@ export default function OrgChart() {
                         profile={p} 
                         role={roles[p.user_id] || 'employee'}
                         roles={roles}
+                        isClickable={isAdmin}
                       />
                     ))}
                   </div>
