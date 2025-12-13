@@ -27,26 +27,44 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const adminItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'Employees', url: '/employees', icon: Users },
-  { title: 'Attendance', url: '/attendance', icon: Clock },
-  { title: 'Leave Management', url: '/leaves', icon: Calendar },
-  { title: 'Payroll', url: '/payroll', icon: DollarSign },
-  { title: 'Org Chart', url: '/org-chart', icon: Building2 },
-  { title: 'Settings', url: '/settings', icon: Settings },
-];
+const getNavItems = (role: string | null, isAdmin: boolean) => {
+  const baseItems = [
+    { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  ];
 
-const employeeItems = [
-  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { title: 'My Attendance', url: '/attendance', icon: Clock },
-  { title: 'My Leaves', url: '/leaves', icon: Calendar },
-  { title: 'My Payroll', url: '/payroll', icon: DollarSign },
-];
+  if (isAdmin) {
+    const adminItems = [
+      ...baseItems,
+      { title: 'Employees', url: '/employees', icon: Users },
+      { title: 'Attendance', url: '/attendance', icon: Clock },
+      { title: 'Leave Management', url: '/leaves', icon: Calendar },
+    ];
+    
+    // Only owner can see Payroll
+    if (role === 'owner') {
+      adminItems.push({ title: 'Payroll', url: '/payroll', icon: DollarSign });
+    }
+    
+    adminItems.push(
+      { title: 'Org Chart', url: '/org-chart', icon: Building2 },
+      { title: 'Settings', url: '/settings', icon: Settings }
+    );
+    
+    return adminItems;
+  }
+
+  // Employee/Manager items
+  return [
+    ...baseItems,
+    { title: 'My Attendance', url: '/attendance', icon: Clock },
+    { title: 'My Leaves', url: '/leaves', icon: Calendar },
+    { title: 'Org Chart', url: '/org-chart', icon: Building2 },
+  ];
+};
 
 export function AppSidebar() {
   const { profile, role, signOut, isAdmin } = useAuth();
-  const items = isAdmin ? adminItems : employeeItems;
+  const items = getNavItems(role, isAdmin);
 
   const getInitials = () => {
     if (!profile) return 'U';
