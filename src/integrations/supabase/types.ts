@@ -103,6 +103,30 @@ export type Database = {
         }
         Relationships: []
       }
+      holidays: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          name: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
       leave_balances: {
         Row: {
           casual_leave: number | null
