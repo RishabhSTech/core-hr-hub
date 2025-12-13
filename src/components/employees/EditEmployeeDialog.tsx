@@ -36,8 +36,8 @@ export function EditEmployeeDialog({ open, onOpenChange, profile, currentRole, o
   const [departments, setDepartments] = useState<Department[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
   const [formData, setFormData] = useState({
-    department_id: '',
-    reporting_manager_id: '',
+    department_id: 'none',
+    reporting_manager_id: 'none',
     monthly_salary: '',
     role: 'employee' as AppRole,
   });
@@ -45,8 +45,8 @@ export function EditEmployeeDialog({ open, onOpenChange, profile, currentRole, o
   useEffect(() => {
     if (open && profile) {
       setFormData({
-        department_id: profile.department_id || '',
-        reporting_manager_id: profile.reporting_manager_id || '',
+        department_id: profile.department_id || 'none',
+        reporting_manager_id: profile.reporting_manager_id || 'none',
         monthly_salary: String(profile.monthly_salary || 0),
         role: currentRole as AppRole,
       });
@@ -74,8 +74,8 @@ export function EditEmployeeDialog({ open, onOpenChange, profile, currentRole, o
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          department_id: formData.department_id || null,
-          reporting_manager_id: formData.reporting_manager_id || null,
+          department_id: formData.department_id === 'none' ? null : formData.department_id,
+          reporting_manager_id: formData.reporting_manager_id === 'none' ? null : formData.reporting_manager_id,
           monthly_salary: parseFloat(formData.monthly_salary) || 0,
         })
         .eq('id', profile.id);
@@ -114,7 +114,7 @@ export function EditEmployeeDialog({ open, onOpenChange, profile, currentRole, o
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {departments.map((dept) => (
                   <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
                 ))}
@@ -129,7 +129,7 @@ export function EditEmployeeDialog({ open, onOpenChange, profile, currentRole, o
                 <SelectValue placeholder="Select manager" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">None</SelectItem>
+                <SelectItem value="none">None</SelectItem>
                 {managers.map((mgr) => (
                   <SelectItem key={mgr.id} value={mgr.id}>
                     {mgr.first_name} {mgr.last_name}
