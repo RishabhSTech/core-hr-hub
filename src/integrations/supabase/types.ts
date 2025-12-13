@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          session_id: string | null
           sign_in_time: string
           sign_out_time: string | null
           status: Database["public"]["Enums"]["attendance_status"] | null
@@ -28,6 +29,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          session_id?: string | null
           sign_in_time?: string
           sign_out_time?: string | null
           status?: Database["public"]["Enums"]["attendance_status"] | null
@@ -37,12 +39,21 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          session_id?: string | null
           sign_in_time?: string
           sign_out_time?: string | null
           status?: Database["public"]["Enums"]["attendance_status"] | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "attendance_sessions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "work_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_settings: {
         Row: {
@@ -370,6 +381,36 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      work_sessions: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          is_active: boolean | null
+          name: string
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          start_time?: string
+          updated_at?: string
         }
         Relationships: []
       }
