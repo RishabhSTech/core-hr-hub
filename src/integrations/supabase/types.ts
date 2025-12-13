@@ -44,6 +44,30 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       departments: {
         Row: {
           created_at: string
@@ -148,13 +172,19 @@ export type Database = {
           base_salary: number | null
           created_at: string
           deductions: number | null
+          epf_amount: number | null
+          esic_amount: number | null
+          gross_salary: number | null
           id: string
           month: number
           net_salary: number | null
           paid_leave_days: number | null
+          pf_amount: number | null
           present_days: number | null
           processed_at: string | null
           status: string | null
+          total_additions: number | null
+          total_deductions: number | null
           unpaid_leave_days: number | null
           updated_at: string
           user_id: string
@@ -165,13 +195,19 @@ export type Database = {
           base_salary?: number | null
           created_at?: string
           deductions?: number | null
+          epf_amount?: number | null
+          esic_amount?: number | null
+          gross_salary?: number | null
           id?: string
           month: number
           net_salary?: number | null
           paid_leave_days?: number | null
+          pf_amount?: number | null
           present_days?: number | null
           processed_at?: string | null
           status?: string | null
+          total_additions?: number | null
+          total_deductions?: number | null
           unpaid_leave_days?: number | null
           updated_at?: string
           user_id: string
@@ -182,13 +218,19 @@ export type Database = {
           base_salary?: number | null
           created_at?: string
           deductions?: number | null
+          epf_amount?: number | null
+          esic_amount?: number | null
+          gross_salary?: number | null
           id?: string
           month?: number
           net_salary?: number | null
           paid_leave_days?: number | null
+          pf_amount?: number | null
           present_days?: number | null
           processed_at?: string | null
           status?: string | null
+          total_additions?: number | null
+          total_deductions?: number | null
           unpaid_leave_days?: number | null
           updated_at?: string
           user_id?: string
@@ -196,6 +238,41 @@ export type Database = {
           year?: number
         }
         Relationships: []
+      }
+      payroll_adjustments: {
+        Row: {
+          adjustment_type: string
+          amount: number
+          created_at: string
+          id: string
+          name: string
+          payroll_id: string
+        }
+        Insert: {
+          adjustment_type: string
+          amount?: number
+          created_at?: string
+          id?: string
+          name: string
+          payroll_id: string
+        }
+        Update: {
+          adjustment_type?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          name?: string
+          payroll_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_adjustments_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "payroll"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

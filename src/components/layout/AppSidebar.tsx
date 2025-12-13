@@ -7,7 +7,8 @@ import {
   Building2,
   LogOut,
   User,
-  ChevronRight
+  ChevronRight,
+  Settings
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +34,7 @@ const adminItems = [
   { title: 'Leave Management', url: '/leaves', icon: Calendar },
   { title: 'Payroll', url: '/payroll', icon: DollarSign },
   { title: 'Org Chart', url: '/org-chart', icon: Building2 },
+  { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
 const employeeItems = [

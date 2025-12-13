@@ -6,49 +6,55 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Mail, Phone, MapPin, Building2, Calendar, CreditCard, User } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Building2, Calendar, CreditCard, User, Pencil, CalendarPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/hrms';
 import { format } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { EditEmployeeDialog } from '@/components/employees/EditEmployeeDialog';
+import { AddAttendanceDialog } from '@/components/employees/AddAttendanceDialog';
 
 export default function EmployeeProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAdmin, role: currentUserRole } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<string>('employee');
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [attendanceDialogOpen, setAttendanceDialogOpen] = useState(false);
+
+  const fetchProfile = async () => {
+    if (!id) return;
+
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*, department:departments(*)')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (profileData) {
+        setProfile(profileData as unknown as Profile);
+        
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', profileData.user_id)
+          .maybeSingle();
+        
+        if (roleData) {
+          setRole(roleData.role);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      if (!id) return;
-
-      try {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*, department:departments(*)')
-          .eq('id', id)
-          .maybeSingle();
-
-        if (profileData) {
-          setProfile(profileData as unknown as Profile);
-          
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', profileData.user_id)
-            .maybeSingle();
-          
-          if (roleData) {
-            setRole(roleData.role);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProfile();
   }, [id]);
 
@@ -90,10 +96,26 @@ export default function EmployeeProfile() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          {isAdmin && (
+            <div className="flex gap-2">
+              {currentUserRole === 'owner' && (
+                <Button variant="outline" onClick={() => setAttendanceDialogOpen(true)}>
+                  <CalendarPlus className="h-4 w-4 mr-2" />
+                  Add Attendance
+                </Button>
+              )}
+              <Button onClick={() => setEditDialogOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Employee
+              </Button>
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1">
@@ -234,6 +256,24 @@ export default function EmployeeProfile() {
           </div>
         </div>
       </div>
+
+      <EditEmployeeDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        profile={profile}
+        currentRole={role}
+        onSuccess={fetchProfile}
+      />
+
+      {profile && (
+        <AddAttendanceDialog
+          open={attendanceDialogOpen}
+          onOpenChange={setAttendanceDialogOpen}
+          userId={profile.user_id}
+          employeeName={`${profile.first_name} ${profile.last_name}`}
+          onSuccess={fetchProfile}
+        />
+      )}
     </AppLayout>
   );
 }
