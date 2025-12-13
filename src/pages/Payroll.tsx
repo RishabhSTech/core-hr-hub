@@ -272,119 +272,18 @@ export default function Payroll() {
             </Card>
           </>
         ) : (
-          // Employee View - Personal Payroll Only
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Base Salary</p>
-                      <p className="text-2xl font-bold text-foreground mt-1">
-                        ₹{Number(estimatedSalary).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <DollarSign className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Per Day Rate</p>
-                      <p className="text-2xl font-bold text-foreground mt-1">
-                        ₹{Math.round(perDaySalary).toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-green-100 text-green-600">
-                      <TrendingUp className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Salary Type</p>
-                      <p className="text-2xl font-bold text-foreground mt-1 capitalize">
-                        {profile?.salary_type || 'Fixed'}
-                      </p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
-                      <Calendar className="h-5 w-5" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold">
-                  Payroll Details - {months[parseInt(selectedMonth) - 1]} {selectedYear}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <p className="text-center py-8 text-muted-foreground">Loading...</p>
-                ) : currentPayroll ? (
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Status</span>
-                      {getStatusBadge(currentPayroll.status)}
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="p-4 rounded-lg bg-accent/50">
-                        <p className="text-sm text-muted-foreground">Working Days</p>
-                        <p className="text-xl font-bold text-foreground">{currentPayroll.working_days}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-green-50">
-                        <p className="text-sm text-muted-foreground">Present Days</p>
-                        <p className="text-xl font-bold text-green-700">{currentPayroll.present_days}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-blue-50">
-                        <p className="text-sm text-muted-foreground">Paid Leave</p>
-                        <p className="text-xl font-bold text-blue-700">{currentPayroll.paid_leave_days}</p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-red-50">
-                        <p className="text-sm text-muted-foreground">Unpaid Leave</p>
-                        <p className="text-xl font-bold text-red-700">{currentPayroll.unpaid_leave_days}</p>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-border pt-4 space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Base Salary</span>
-                        <span className="font-medium">₹{Number(currentPayroll.base_salary).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-destructive">
-                        <span>Deductions</span>
-                        <span className="font-medium">- ₹{Number(currentPayroll.deductions).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-lg font-bold border-t border-border pt-3">
-                        <span>Net Salary</span>
-                        <span className="text-green-600">₹{Number(currentPayroll.net_salary).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground mb-2">No payroll record found for this month</p>
-                    <p className="text-sm text-muted-foreground">
-                      Payroll will be generated based on your attendance and leave records
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
+          // Non-admin view - Show message that payroll is managed by admins
+          <Card>
+            <CardContent className="p-12">
+              <div className="text-center">
+                <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">Payroll Management</h3>
+                <p className="text-muted-foreground">
+                  Payroll information is managed by administrators. Please contact your HR department for payroll queries.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
 
