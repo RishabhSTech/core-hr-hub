@@ -103,7 +103,7 @@ export default function Employees() {
         {loading ? (
           <div className="text-center py-12 text-muted-foreground">Loading...</div>
         ) : (
-          <EmployeeTable employees={filteredEmployees} roles={roles} />
+          <EmployeeTable employees={filteredEmployees} roles={roles} onRefresh={fetchData} />
         )}
       </div>
     </AppLayout>
