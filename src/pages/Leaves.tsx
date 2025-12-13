@@ -43,11 +43,8 @@ export default function Leaves() {
 
       // Fetch team/all requests for managers/admins
       if (isAdmin || isManager) {
-        let query = supabase
-          .from('leave_requests')
-          .select('*, profile:profiles(first_name, last_name, reporting_manager_id)')
-          .neq('user_id', user.id)
-          .order('created_at', { ascending: false });
+        // First get the user IDs we need to fetch
+        let userIdsToFetch: string[] = [];
 
         // For managers, only show their direct reports
         if (isManager && !isAdmin && profile) {
@@ -57,18 +54,46 @@ export default function Leaves() {
             .eq('reporting_manager_id', profile.id);
           
           if (reportees && reportees.length > 0) {
-            const reporteeIds = reportees.map(r => r.user_id);
-            query = query.in('user_id', reporteeIds);
+            userIdsToFetch = reportees.map(r => r.user_id);
           } else {
             setTeamRequests([]);
-            setLoading(false);
-            return;
           }
         }
 
-        const { data: teamData } = await query;
-        if (teamData) {
-          setTeamRequests(teamData as unknown as LeaveRequest[]);
+        // Fetch leave requests
+        let requestsQuery = supabase
+          .from('leave_requests')
+          .select('*')
+          .neq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (isManager && !isAdmin && userIdsToFetch.length > 0) {
+          requestsQuery = requestsQuery.in('user_id', userIdsToFetch);
+        }
+
+        const { data: teamData } = await requestsQuery;
+        
+        if (teamData && teamData.length > 0) {
+          // Fetch all profiles for these requests
+          const requestUserIds = [...new Set(teamData.map(r => r.user_id))];
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('user_id, first_name, last_name, reporting_manager_id')
+            .in('user_id', requestUserIds);
+
+          // Create a map of user_id to profile
+          const profileMap = new Map();
+          profilesData?.forEach(p => profileMap.set(p.user_id, p));
+
+          // Attach profile data to each request
+          const requestsWithProfiles = teamData.map(request => ({
+            ...request,
+            profile: profileMap.get(request.user_id) || null
+          }));
+
+          setTeamRequests(requestsWithProfiles as unknown as LeaveRequest[]);
+        } else {
+          setTeamRequests([]);
         }
       }
 
