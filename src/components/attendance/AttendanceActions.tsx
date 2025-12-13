@@ -18,8 +18,17 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState('0h 0m 0s');
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Live timer effect
+  // Update current time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Live timer effect for session
   useEffect(() => {
     if (!currentSession) {
       setElapsedTime('0h 0m 0s');
@@ -172,7 +181,7 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
             <div className="text-center py-6 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground mb-1">Current Time</p>
               <p className="text-2xl font-semibold text-foreground">
-                {format(new Date(), 'h:mm a')}
+                {format(currentTime, 'h:mm:ss a')}
               </p>
             </div>
 
