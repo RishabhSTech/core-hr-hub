@@ -1,0 +1,131 @@
+import { 
+  LayoutDashboard, 
+  Users, 
+  Clock, 
+  Calendar, 
+  DollarSign, 
+  Building2,
+  LogOut,
+  User,
+  ChevronRight
+} from 'lucide-react';
+import { NavLink } from '@/components/NavLink';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+  SidebarHeader,
+} from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
+const adminItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Employees', url: '/employees', icon: Users },
+  { title: 'Attendance', url: '/attendance', icon: Clock },
+  { title: 'Leave Management', url: '/leaves', icon: Calendar },
+  { title: 'Payroll', url: '/payroll', icon: DollarSign },
+  { title: 'Org Chart', url: '/org-chart', icon: Building2 },
+];
+
+const employeeItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'My Attendance', url: '/attendance', icon: Clock },
+  { title: 'My Leaves', url: '/leaves', icon: Calendar },
+  { title: 'My Payroll', url: '/payroll', icon: DollarSign },
+];
+
+export function AppSidebar() {
+  const { profile, role, signOut, isAdmin } = useAuth();
+  const items = isAdmin ? adminItems : employeeItems;
+
+  const getInitials = () => {
+    if (!profile) return 'U';
+    return `${profile.first_name?.[0] || ''}${profile.last_name?.[0] || ''}`.toUpperCase();
+  };
+
+  const getRoleLabel = () => {
+    switch (role) {
+      case 'owner': return 'Owner';
+      case 'admin': return 'Admin';
+      case 'manager': return 'Manager';
+      default: return 'Employee';
+    }
+  };
+
+  return (
+    <Sidebar className="border-r border-border">
+      <SidebarHeader className="border-b border-border p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold">
+            W
+          </div>
+          <div>
+            <h1 className="font-semibold text-foreground">WorkFlow</h1>
+            <p className="text-xs text-muted-foreground">HRMS</p>
+          </div>
+        </div>
+      </SidebarHeader>
+      
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {items.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink 
+                      to={item.url} 
+                      className="flex items-center gap-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-border p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground truncate">
+              {profile?.first_name} {profile?.last_name}
+            </p>
+            <p className="text-xs text-muted-foreground">{getRoleLabel()}</p>
+          </div>
+          <NavLink to="/profile">
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </NavLink>
+        </div>
+        <Button 
+          variant="outline" 
+          className="w-full justify-start gap-2" 
+          onClick={signOut}
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </Button>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
