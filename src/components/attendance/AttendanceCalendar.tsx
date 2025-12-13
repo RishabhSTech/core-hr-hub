@@ -1,16 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ChevronLeft, ChevronRight, PartyPopper } from 'lucide-react';
 import { AttendanceSession } from '@/types/hrms';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+
+interface Holiday {
+  id: string;
+  name: string;
+  date: string;
+  type: string;
+}
 
 interface AttendanceCalendarProps {
   sessions: AttendanceSession[];
@@ -19,10 +28,35 @@ interface AttendanceCalendarProps {
 export function AttendanceCalendar({ sessions }: AttendanceCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  useEffect(() => {
+    fetchHolidays();
+  }, [currentMonth]);
+
+  const fetchHolidays = async () => {
+    const startDate = format(monthStart, 'yyyy-MM-dd');
+    const endDate = format(monthEnd, 'yyyy-MM-dd');
+    
+    const { data } = await supabase
+      .from('holidays')
+      .select('*')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date');
+    
+    if (data) {
+      setHolidays(data);
+    }
+  };
+
+  const getHolidayForDay = (day: Date) => {
+    return holidays.find(h => isSameDay(new Date(h.date), day));
+  };
 
   const getStatusForDay = (day: Date) => {
     const daySession = sessions.find(s => 
@@ -35,7 +69,8 @@ export function AttendanceCalendar({ sessions }: AttendanceCalendarProps) {
     return sessions.find(s => isSameDay(new Date(s.sign_in_time), day));
   };
 
-  const getStatusColor = (status: string | null) => {
+  const getStatusColor = (status: string | null, holiday: Holiday | undefined) => {
+    if (holiday) return 'bg-purple-100 text-purple-700 border-purple-200';
     switch (status) {
       case 'present': return 'bg-green-100 text-green-700 border-green-200';
       case 'half_day': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
@@ -47,6 +82,7 @@ export function AttendanceCalendar({ sessions }: AttendanceCalendarProps) {
   };
 
   const selectedSession = selectedDay ? getSessionForDay(selectedDay) : null;
+  const selectedHoliday = selectedDay ? getHolidayForDay(selectedDay) : null;
 
   const calculateWorkingHours = (session: AttendanceSession) => {
     if (!session.sign_out_time) return 'In progress';
@@ -55,6 +91,9 @@ export function AttendanceCalendar({ sessions }: AttendanceCalendarProps) {
     const hours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
     return `${hours.toFixed(1)} hours`;
   };
+
+  // Get upcoming holidays for the sidebar
+  const upcomingHolidays = holidays.filter(h => new Date(h.date) >= new Date());
 
   return (
     <>
@@ -96,18 +135,23 @@ export function AttendanceCalendar({ sessions }: AttendanceCalendarProps) {
             ))}
             {days.map(day => {
               const status = getStatusForDay(day);
+              const holiday = getHolidayForDay(day);
               return (
                 <button
                   key={day.toISOString()}
                   onClick={() => setSelectedDay(day)}
                   className={cn(
-                    "aspect-square flex items-center justify-center rounded-md text-sm font-medium border transition-colors",
-                    getStatusColor(status),
+                    "aspect-square flex flex-col items-center justify-center rounded-md text-sm font-medium border transition-colors relative",
+                    getStatusColor(status, holiday),
                     isToday(day) && "ring-2 ring-primary ring-offset-2",
                     "hover:opacity-80"
                   )}
+                  title={holiday?.name}
                 >
                   {format(day, 'd')}
+                  {holiday && (
+                    <div className="absolute bottom-0.5 w-1.5 h-1.5 rounded-full bg-purple-500" />
+                  )}
                 </button>
               );
             })}
@@ -129,9 +173,35 @@ export function AttendanceCalendar({ sessions }: AttendanceCalendarProps) {
               <div className="w-3 h-3 rounded bg-blue-100 border border-blue-200" />
               <span className="text-xs text-muted-foreground">On Leave</span>
             </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-purple-100 border border-purple-200" />
+              <span className="text-xs text-muted-foreground">Holiday</span>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Upcoming Holidays */}
+      {upcomingHolidays.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <PartyPopper className="h-4 w-4" />
+              Upcoming Holidays
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {upcomingHolidays.slice(0, 5).map(holiday => (
+              <div key={holiday.id} className="flex items-center justify-between text-sm">
+                <span className="text-foreground">{holiday.name}</span>
+                <Badge variant="outline" className="text-xs">
+                  {format(new Date(holiday.date), 'MMM d')}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={!!selectedDay} onOpenChange={() => setSelectedDay(null)}>
         <DialogContent>
@@ -140,7 +210,15 @@ export function AttendanceCalendar({ sessions }: AttendanceCalendarProps) {
               {selectedDay && format(selectedDay, 'EEEE, MMMM d, yyyy')}
             </DialogTitle>
           </DialogHeader>
-          {selectedSession ? (
+          {selectedHoliday ? (
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-purple-50 border border-purple-200">
+              <PartyPopper className="h-8 w-8 text-purple-600" />
+              <div>
+                <p className="font-semibold text-purple-700">{selectedHoliday.name}</p>
+                <p className="text-sm text-purple-600 capitalize">{selectedHoliday.type} Holiday</p>
+              </div>
+            </div>
+          ) : selectedSession ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>

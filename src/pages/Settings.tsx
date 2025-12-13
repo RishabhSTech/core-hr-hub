@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Settings2, Shield, Clock, Plus, Trash2 } from 'lucide-react';
+import { HolidayCalendar } from '@/components/settings/HolidayCalendar';
 
 interface PayrollConfig {
   pf_enabled: boolean;
@@ -374,6 +375,9 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Holiday Calendar */}
+        <HolidayCalendar />
       </div>
     </AppLayout>
   );
