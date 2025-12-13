@@ -25,7 +25,7 @@ export default function EmployeeProfile() {
       try {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('*, department:departments(*), reporting_manager:profiles!profiles_reporting_manager_id_fkey(first_name, last_name)')
+          .select('*, department:departments(*)')
           .eq('id', id)
           .maybeSingle();
 
