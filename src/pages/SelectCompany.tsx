@@ -16,9 +16,28 @@ const SelectCompany = () => {
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; slug: string }>>([]);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Escape special ILIKE characters to prevent SQL injection
+  const escapeILike = (str: string) => {
+    return str.replace(/[%_\\]/g, '\\$&');
+  };
+
   const handleSearch = async () => {
-    if (!searchQuery.trim()) {
+    const trimmed = searchQuery.trim();
+
+    if (!trimmed) {
       toast.error('Please enter a company name or code');
+      return;
+    }
+
+    // Validate input length
+    if (trimmed.length > 100) {
+      toast.error('Search query too long');
+      return;
+    }
+
+    // Allow only safe characters
+    if (!/^[a-zA-Z0-9\s\-_.]+$/.test(trimmed)) {
+      toast.error('Only letters, numbers, spaces, hyphens, and periods allowed');
       return;
     }
 
@@ -26,11 +45,12 @@ const SelectCompany = () => {
     setHasSearched(true);
 
     try {
+      const escapedQuery = escapeILike(trimmed);
       const { data, error } = await supabase
         .from('companies')
         .select('id, name, slug')
         .eq('is_active', true)
-        .or(`slug.ilike.%${searchQuery}%,name.ilike.%${searchQuery}%`)
+        .or(`slug.ilike.%${escapedQuery}%,name.ilike.%${escapedQuery}%`)
         .limit(10);
 
       if (error) throw error;
