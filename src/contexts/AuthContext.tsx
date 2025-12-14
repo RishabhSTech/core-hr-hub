@@ -9,11 +9,13 @@ interface AuthContextType {
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
+  isSuperAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, firstName: string, lastName: string, companyId: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isManager: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null);
           setRole(null);
+          setIsSuperAdmin(false);
           setLoading(false);
         }
       }
@@ -58,6 +62,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
+      // Check if super admin first
+      const { data: superAdminData } = await supabase
+        .from('super_admins')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (superAdminData) {
+        setIsSuperAdmin(true);
+        setLoading(false);
+        return;
+      }
+
       const [profileResult, roleResult] = await Promise.all([
         supabase
           .from('profiles')
@@ -99,24 +116,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchUserData(user.id);
+    }
+  };
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          first_name: firstName,
-          last_name: lastName,
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, companyId: string) => {
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+          },
         },
-      },
-    });
-    return { error };
+      });
+
+      if (authError) return { error: authError };
+
+      if (authData.user) {
+        // Get next employee ID
+        const { count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', companyId);
+
+        const employeeId = `EMP-${String((count || 0) + 1).padStart(4, '0')}`;
+
+        // Create profile with company_id
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: authData.user.id,
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            company_id: companyId,
+            employee_id: employeeId,
+          });
+
+        if (profileError) return { error: profileError as any };
+
+        // Create user role as employee
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role: 'employee',
+          });
+
+        if (roleError) return { error: roleError as any };
+
+        // Create leave balance
+        await supabase
+          .from('leave_balances')
+          .insert({
+            user_id: authData.user.id,
+            company_id: companyId,
+          });
+      }
+
+      return { error: null };
+    } catch (err: any) {
+      return { error: err };
+    }
   };
 
   const signOut = async () => {
@@ -125,6 +197,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setRole(null);
+    setIsSuperAdmin(false);
+    localStorage.removeItem('selected_company_slug');
   };
 
   const isAdmin = role === 'owner' || role === 'admin';
@@ -137,11 +211,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       role,
       loading,
+      isSuperAdmin,
       signIn,
       signUp,
       signOut,
       isAdmin,
       isManager,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

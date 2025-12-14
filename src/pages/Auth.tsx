@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompany } from '@/contexts/CompanyContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { Building2, ArrowLeft } from 'lucide-react';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -23,13 +25,26 @@ const signupSchema = z.object({
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, profile } = useAuth();
+  const { company } = useCompany();
   const [loading, setLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({ firstName: '', lastName: '', email: '', password: '' });
 
-  if (user) {
-    navigate('/dashboard');
+  useEffect(() => {
+    // Redirect to company selection if no company selected
+    if (!company) {
+      navigate('/select-company');
+      return;
+    }
+
+    // Redirect to dashboard if already logged in
+    if (user && profile) {
+      navigate('/dashboard');
+    }
+  }, [user, profile, company, navigate]);
+
+  if (!company) {
     return null;
   }
 
@@ -72,7 +87,8 @@ export default function Auth() {
       signupData.email, 
       signupData.password, 
       signupData.firstName, 
-      signupData.lastName
+      signupData.lastName,
+      company.id
     );
     setLoading(false);
 
@@ -83,7 +99,7 @@ export default function Auth() {
         toast.error(error.message);
       }
     } else {
-      toast.success('Account created successfully!');
+      toast.success('Account created successfully! Check your email to verify.');
       navigate('/dashboard');
     }
   };
@@ -91,14 +107,22 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
+        <Link
+          to="/select-company"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Change company
+        </Link>
+
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">
-              W
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Building2 className="h-6 w-6" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">WorkFlow HRMS</h1>
-          <p className="text-muted-foreground mt-1">Human Resource Management System</p>
+          <h1 className="text-2xl font-bold text-foreground">{company.name}</h1>
+          <p className="text-muted-foreground mt-1">Sign in to access your workspace</p>
         </div>
 
         <Card>
@@ -106,7 +130,7 @@ export default function Auth() {
             <CardHeader className="pb-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                <TabsTrigger value="signup">Join Team</TabsTrigger>
               </TabsList>
             </CardHeader>
             <CardContent>
@@ -187,11 +211,11 @@ export default function Auth() {
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Creating account...' : 'Create Account'}
+                    {loading ? 'Creating account...' : 'Join Team'}
                   </Button>
                 </form>
                 <p className="text-xs text-muted-foreground text-center mt-4">
-                  The first user to sign up becomes the Owner/Admin
+                  You'll join {company.name} as an employee
                 </p>
               </TabsContent>
             </CardContent>
