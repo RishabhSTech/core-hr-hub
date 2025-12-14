@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Users, Clock, Calendar, DollarSign, Building2, Shield } from 'lucide-react';
@@ -66,10 +66,18 @@ export default function Index() {
             </div>
             <span className="font-semibold text-foreground">WorkFlow HRMS</span>
           </div>
-          <Button onClick={() => navigate('/auth')}>
-            Get Started
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-4">
+            <Link to="/super-admin/login">
+              <Button variant="ghost" size="sm">
+                <Shield className="h-4 w-4 mr-2" />
+                Admin
+              </Button>
+            </Link>
+            <Button onClick={() => navigate('/select-company')}>
+              Get Started
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -85,13 +93,13 @@ export default function Index() {
             A lightweight, scalable HRMS designed for small to mid-sized businesses. 
             Manage your workforce efficiently with our clean, intuitive platform.
           </p>
-          <div className="flex gap-4 justify-center">
-            <Button size="lg" onClick={() => navigate('/auth')}>
-              Start Free
-              <ArrowRight className="ml-2 h-4 w-4" />
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Button size="lg" onClick={() => navigate('/select-company')}>
+              <Building2 className="mr-2 h-4 w-4" />
+              Find Your Company
             </Button>
-            <Button size="lg" variant="outline">
-              Learn More
+            <Button size="lg" variant="outline" onClick={() => navigate('/register-company')}>
+              Register Company
             </Button>
           </div>
         </div>
@@ -129,8 +137,8 @@ export default function Index() {
           <p className="text-muted-foreground mb-8">
             Get started in minutes. No credit card required.
           </p>
-          <Button size="lg" onClick={() => navigate('/auth')}>
-            Create Your Account
+          <Button size="lg" onClick={() => navigate('/register-company')}>
+            Register Your Company
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -139,7 +147,7 @@ export default function Index() {
       {/* Footer */}
       <footer className="border-t border-border py-8 px-4">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
-          © 2024 WorkFlow HRMS. Built for modern businesses.
+          © {new Date().getFullYear()} WorkFlow HRMS. Built for modern businesses.
         </div>
       </footer>
     </div>
