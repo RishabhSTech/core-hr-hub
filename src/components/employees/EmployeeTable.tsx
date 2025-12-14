@@ -26,6 +26,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EditEmployeeDialog } from './EditEmployeeDialog';
+import { mapDatabaseError } from '@/utils/errorMapper';
 
 interface EmployeeTableProps {
   employees: Profile[];
@@ -70,9 +71,8 @@ export function EmployeeTable({ employees, roles = {}, onRefresh }: EmployeeTabl
       toast.success(`${deleteEmployee.first_name} ${deleteEmployee.last_name} has been removed`);
       setDeleteEmployee(null);
       onRefresh?.();
-    } catch (error: any) {
-      console.error('Delete error:', error);
-      toast.error(error.message || 'Failed to delete employee');
+    } catch (error: unknown) {
+      toast.error(mapDatabaseError(error));
     } finally {
       setDeleting(false);
     }

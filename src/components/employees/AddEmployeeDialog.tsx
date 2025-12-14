@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Department, AppRole } from '@/types/hrms';
 import { z } from 'zod';
+import { mapDatabaseError } from '@/utils/errorMapper';
 
 const employeeSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -102,13 +103,8 @@ export function AddEmployeeDialog({ departments, onSuccess }: AddEmployeeDialogP
         monthlySalary: '',
       });
       onSuccess();
-    } catch (error: any) {
-      console.error('Error adding employee:', error);
-      if (error.message?.includes('already registered')) {
-        toast.error('This email is already registered');
-      } else {
-        toast.error(error.message || 'Failed to add employee');
-      }
+    } catch (error: unknown) {
+      toast.error(mapDatabaseError(error));
     } finally {
       setLoading(false);
     }

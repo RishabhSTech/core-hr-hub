@@ -5,21 +5,42 @@ import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle } from 'luc
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Department } from '@/types/hrms';
+import { z } from 'zod';
+import { mapDatabaseError } from '@/utils/errorMapper';
 
 interface CSVUploadDialogProps {
   departments: Department[];
   onSuccess: () => void;
 }
 
+// Validation schema for CSV rows
+const csvRowSchema = z.object({
+  email: z.string().email('Invalid email format').max(100, 'Email too long'),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(128, 'Password too long'),
+  first_name: z.string().min(1, 'First name is required').max(50, 'First name too long').regex(/^[a-zA-Z\s'-]+$/, 'First name contains invalid characters'),
+  last_name: z.string().min(1, 'Last name is required').max(50, 'Last name too long').regex(/^[a-zA-Z\s'-]+$/, 'Last name contains invalid characters'),
+  role: z.enum(['employee', 'manager', 'admin']).optional(),
+  department: z.string().max(100, 'Department name too long').optional(),
+  monthly_salary: z.string().regex(/^(\d+(\.\d{1,2})?)?$/, 'Invalid salary format').optional().refine(
+    (val) => !val || parseFloat(val) <= 10000000,
+    'Salary exceeds maximum allowed value'
+  ),
+  phone: z.string().regex(/^(\d{10})?$/, 'Phone must be 10 digits').optional(),
+});
+
+// File size and row limits
+const MAX_FILE_SIZE = 1024 * 1024; // 1MB
+const MAX_ROWS = 500;
+
 interface CSVRow {
   email: string;
   password: string;
   first_name: string;
   last_name: string;
-  role: string;
-  department: string;
-  monthly_salary: string;
-  phone: string;
+  role?: string;
+  department?: string;
+  monthly_salary?: string;
+  phone?: string;
 }
 
 export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps) {
@@ -59,13 +80,25 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const rows: CSVRow[] = [];
 
-    for (let i = 1; i < lines.length; i++) {
+    // Limit to MAX_ROWS
+    const maxLines = Math.min(lines.length, MAX_ROWS + 1);
+
+    for (let i = 1; i < maxLines; i++) {
       const values = lines[i].split(',').map(v => v.trim());
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
       });
-      rows.push(row as CSVRow);
+      rows.push({
+        email: row.email || '',
+        password: row.password || '',
+        first_name: row.first_name || '',
+        last_name: row.last_name || '',
+        role: row.role,
+        department: row.department,
+        monthly_salary: row.monthly_salary,
+        phone: row.phone,
+      });
     }
 
     return rows;
@@ -79,9 +112,21 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
 
     for (const row of rows) {
       try {
-        // Validate required fields
-        if (!row.email || !row.password || !row.first_name || !row.last_name) {
-          throw new Error(`Missing required fields`);
+        // Validate row with Zod schema
+        const validation = csvRowSchema.safeParse({
+          email: row.email,
+          password: row.password,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          role: row.role?.toLowerCase() || undefined,
+          department: row.department || undefined,
+          monthly_salary: row.monthly_salary || undefined,
+          phone: row.phone || undefined,
+        });
+
+        if (!validation.success) {
+          const firstError = validation.error.errors[0];
+          throw new Error(firstError.message);
         }
 
         // Find department ID
@@ -104,12 +149,13 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
         if (!authData.user) throw new Error('Failed to create user');
 
         // Update profile
+        const salary = row.monthly_salary ? parseFloat(row.monthly_salary) : 0;
         await supabase
           .from('profiles')
           .update({
             phone: row.phone || null,
             department_id: dept?.id || null,
-            monthly_salary: parseFloat(row.monthly_salary) || 0,
+            monthly_salary: salary,
           })
           .eq('user_id', authData.user.id);
 
@@ -123,16 +169,17 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
         }
 
         successCount.value++;
-      } catch (error: any) {
+      } catch (error: unknown) {
         failedCount.value++;
-        errorMessages.push(`${row.email}: ${error.message}`);
+        const userMessage = mapDatabaseError(error);
+        errorMessages.push(`Row ${row.email || 'unknown'}: ${userMessage}`);
       }
     }
 
     setResults({
       success: successCount.value,
       failed: failedCount.value,
-      errors: errorMessages,
+      errors: errorMessages.slice(0, 20), // Limit displayed errors
     });
     setShowResults(true);
     setLoading(false);
@@ -146,8 +193,15 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
     if (!file.name.endsWith('.csv')) {
       toast.error('Please upload a CSV file');
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024}KB`);
       return;
     }
 
@@ -156,6 +210,11 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
 
     if (rows.length === 0) {
       toast.error('No valid data found in CSV');
+      return;
+    }
+
+    if (rows.length > MAX_ROWS) {
+      toast.error(`Too many rows. Maximum is ${MAX_ROWS} employees per upload.`);
       return;
     }
 
@@ -200,6 +259,11 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
                 {results.errors.map((error, i) => (
                   <p key={i} className="text-xs text-red-600">{error}</p>
                 ))}
+                {results.failed > results.errors.length && (
+                  <p className="text-xs text-red-500 mt-2">
+                    ...and {results.failed - results.errors.length} more errors
+                  </p>
+                )}
               </div>
             )}
 
@@ -224,7 +288,8 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
             <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
               <p className="text-xs text-amber-700">
                 <strong>Required columns:</strong> email, password, first_name, last_name<br />
-                <strong>Optional:</strong> role (employee/manager/admin), department, monthly_salary, phone
+                <strong>Optional:</strong> role (employee/manager/admin), department, monthly_salary, phone<br />
+                <strong>Limits:</strong> Max {MAX_ROWS} employees, {MAX_FILE_SIZE / 1024}KB file size
               </p>
             </div>
 
