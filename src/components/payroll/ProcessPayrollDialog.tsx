@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Trash2, Calculator } from 'lucide-react';
 import { Profile } from '@/types/hrms';
+import { mapDatabaseError } from '@/utils/errorMapper';
 
 interface PayrollConfig {
   pf_enabled: boolean;
@@ -270,8 +271,8 @@ export function ProcessPayrollDialog({
       toast.success(`Payroll processed for ${employee.first_name} ${employee.last_name}`);
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to process payroll');
+    } catch (error: unknown) {
+      toast.error(mapDatabaseError(error));
     } finally {
       setLoading(false);
     }
