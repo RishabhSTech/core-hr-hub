@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LogIn, LogOut, Clock, Timer } from 'lucide-react';
+import { LogIn, LogOut, Clock, Timer, Zap } from 'lucide-react';
 import { AttendanceSession } from '@/types/hrms';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ interface AttendanceActionsProps {
 }
 
 export function AttendanceActions({ currentSession, onSessionUpdate }: AttendanceActionsProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState('0h 0m 0s');
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -53,9 +53,9 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
   const getSessionType = () => {
     if (!currentSession) return null;
     const hour = new Date(currentSession.sign_in_time).getHours();
-    if (hour < 12) return { label: 'Morning Session', color: 'bg-amber-100 text-amber-700' };
-    if (hour < 17) return { label: 'Afternoon Session', color: 'bg-blue-100 text-blue-700' };
-    return { label: 'Evening Session', color: 'bg-purple-100 text-purple-700' };
+    if (hour < 12) return { label: 'Morning', color: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+    if (hour < 17) return { label: 'Afternoon', color: 'bg-primary/10 text-primary border-primary/20' };
+    return { label: 'Evening', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20' };
   };
 
   const handleSignIn = async () => {
@@ -67,6 +67,7 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
         .from('attendance_sessions')
         .insert({
           user_id: user.id,
+          company_id: profile?.company_id || null,
           sign_in_time: new Date().toISOString(),
           status: 'present'
         })
@@ -74,7 +75,7 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
         .single();
 
       if (error) throw error;
-      toast.success('Session started successfully');
+      toast.success('🚀 Session started! Have a productive day!');
       onSessionUpdate();
     } catch (error) {
       console.error('Error signing in:', error);
@@ -109,7 +110,7 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
         .eq('id', currentSession.id);
 
       if (error) throw error;
-      toast.success(`Session ended - ${hoursWorked.toFixed(1)} hours worked`);
+      toast.success(`Great work! You logged ${hoursWorked.toFixed(1)} hours today 💪`);
       onSessionUpdate();
     } catch (error) {
       console.error('Error signing out:', error);
@@ -122,34 +123,37 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
   const sessionType = getSessionType();
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3 bg-gradient-to-r from-primary/5 to-transparent">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Today's Attendance</CardTitle>
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <Zap className="h-5 w-5 text-primary" />
+            Today's Session
+          </CardTitle>
           {currentSession && sessionType && (
-            <Badge className={sessionType.color}>{sessionType.label}</Badge>
+            <Badge variant="outline" className={sessionType.color}>{sessionType.label}</Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-4">
         {currentSession ? (
           <>
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 border border-green-200">
-              <div className="p-2 rounded-full bg-green-100 animate-pulse">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20">
+              <div className="p-2.5 rounded-full bg-green-500/20 animate-pulse">
                 <Timer className="h-5 w-5 text-green-600" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-800">Session Active</p>
-                <p className="text-xs text-green-600">
+                <p className="text-sm font-semibold text-green-700">Session Active</p>
+                <p className="text-xs text-green-600/80">
                   Started at {format(new Date(currentSession.sign_in_time), 'h:mm a')}
                 </p>
               </div>
             </div>
             
-            <div className="text-center py-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
-              <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="text-center py-8 bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 rounded-xl border border-primary/10">
+              <div className="flex items-center justify-center gap-2 mb-3">
                 <Clock className="h-5 w-5 text-primary" />
-                <span className="text-sm text-muted-foreground">Time Elapsed</span>
+                <span className="text-sm font-medium text-muted-foreground">Time Elapsed</span>
               </div>
               <p className="text-4xl font-bold text-foreground font-mono tracking-wider">
                 {elapsedTime}
@@ -157,40 +161,43 @@ export function AttendanceActions({ currentSession, onSessionUpdate }: Attendanc
             </div>
 
             <Button 
-              className="w-full" 
+              className="w-full h-12 text-base font-semibold" 
               variant="destructive" 
               onClick={handleSignOut}
               disabled={loading}
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-5 w-5 mr-2" />
               {loading ? 'Ending Session...' : 'End Session'}
             </Button>
           </>
         ) : (
           <>
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-muted border border-border">
-              <div className="p-2 rounded-full bg-muted-foreground/10">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-muted/50 border border-border">
+              <div className="p-2.5 rounded-full bg-muted-foreground/10">
                 <Clock className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">No Active Session</p>
+                <p className="text-sm font-semibold text-foreground">No Active Session</p>
                 <p className="text-xs text-muted-foreground">Click below to start working</p>
               </div>
             </div>
             
-            <div className="text-center py-6 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground mb-1">Current Time</p>
-              <p className="text-2xl font-semibold text-foreground">
+            <div className="text-center py-8 bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border">
+              <p className="text-sm text-muted-foreground mb-2">Current Time</p>
+              <p className="text-3xl font-bold text-foreground font-mono">
                 {format(currentTime, 'h:mm:ss a')}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {format(currentTime, 'EEEE, MMMM d, yyyy')}
               </p>
             </div>
 
             <Button 
-              className="w-full" 
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70" 
               onClick={handleSignIn}
               disabled={loading}
             >
-              <LogIn className="h-4 w-4 mr-2" />
+              <LogIn className="h-5 w-5 mr-2" />
               {loading ? 'Starting Session...' : 'Start Session'}
             </Button>
           </>
