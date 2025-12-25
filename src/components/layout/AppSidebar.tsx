@@ -88,12 +88,12 @@ export function AppSidebar() {
     <Sidebar className="border-r border-border">
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold">
-            W
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-600 text-primary-foreground font-bold shadow-lg shadow-primary/25">
+            C
           </div>
-          <div>
-            <h1 className="font-semibold text-foreground">WorkFlow</h1>
-            <p className="text-xs text-muted-foreground">HRMS</p>
+          <div className="flex flex-col">
+            <h1 className="font-bold text-foreground leading-tight">CoreHR</h1>
+            <p className="text-[10px] text-muted-foreground leading-none">by Shrijan Technologies</p>
           </div>
         </div>
       </SidebarHeader>

@@ -400,7 +400,7 @@ export default function Index() {
                   Actually Works
                 </span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-xl leading-relaxed">
+              <p className="text-lg text-foreground/70 max-w-xl leading-relaxed">
                 Stop wrestling with spreadsheets. Automate attendance, streamline leaves, 
                 and run accurate payroll—all in one beautiful platform.
               </p>
