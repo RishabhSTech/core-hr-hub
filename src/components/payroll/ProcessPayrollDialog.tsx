@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Plus, Trash2, Calculator } from 'lucide-react';
+import { Plus, Trash2, Calculator, TrendingUp, TrendingDown } from 'lucide-react';
 import { Profile } from '@/types/hrms';
 import { mapDatabaseError } from '@/utils/errorMapper';
 
@@ -17,6 +18,8 @@ interface PayrollConfig {
   esic_percentage: number;
   epf_enabled: boolean;
   epf_percentage: number;
+  pt_enabled: boolean;
+  pt_amount: number;
 }
 
 interface Adjustment {
@@ -162,6 +165,7 @@ export function ProcessPayrollDialog({
           paidLeaveDays,
           unpaidLeaveDays,
         });
+        setAdjustments([]);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -188,6 +192,10 @@ export function ProcessPayrollDialog({
       toast.error('Please enter adjustment name');
       return;
     }
+    if (newAdjustment.amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
     setAdjustments(prev => [...prev, { ...newAdjustment }]);
     setNewAdjustment({ name: '', amount: 0, type: 'addition' });
   };
@@ -203,10 +211,11 @@ export function ProcessPayrollDialog({
   
   const pfDeduction = config?.pf_enabled ? (grossSalary * (config.pf_percentage / 100)) : 0;
   const esicDeduction = config?.esic_enabled ? (grossSalary * (config.esic_percentage / 100)) : 0;
+  const ptDeduction = config?.pt_enabled ? (config.pt_amount || 0) : 0;
   
   const totalAdditions = adjustments.filter(a => a.type === 'addition').reduce((sum, a) => sum + a.amount, 0);
   const totalCustomDeductions = adjustments.filter(a => a.type === 'deduction').reduce((sum, a) => sum + a.amount, 0);
-  const totalDeductions = pfDeduction + esicDeduction + totalCustomDeductions;
+  const totalDeductions = pfDeduction + esicDeduction + ptDeduction + totalCustomDeductions;
   
   const netSalary = grossSalary + totalAdditions - totalDeductions;
 
@@ -255,10 +264,15 @@ export function ProcessPayrollDialog({
         payrollId = data.id;
       }
 
-      // Insert new adjustments
-      if (adjustments.length > 0) {
+      // Insert new adjustments (including PT if enabled)
+      const allAdjustments = [...adjustments];
+      if (config?.pt_enabled && ptDeduction > 0) {
+        allAdjustments.push({ name: 'Professional Tax', amount: ptDeduction, type: 'deduction' });
+      }
+
+      if (allAdjustments.length > 0) {
         const { error: adjError } = await supabase.from('payroll_adjustments').insert(
-          adjustments.map(adj => ({
+          allAdjustments.map(adj => ({
             payroll_id: payrollId,
             adjustment_type: adj.type,
             name: adj.name,
@@ -283,34 +297,37 @@ export function ProcessPayrollDialog({
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+            <Calculator className="h-5 w-5 text-primary" />
             Process Payroll - {employee.first_name} {employee.last_name}
           </DialogTitle>
         </DialogHeader>
 
         {calculating ? (
-          <div className="py-8 text-center text-muted-foreground">Calculating...</div>
+          <div className="py-8 text-center text-muted-foreground">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" />
+            <p>Calculating payroll...</p>
+          </div>
         ) : (
           <div className="space-y-6">
             {/* Attendance Summary */}
             <div>
               <Label className="text-sm font-medium">Attendance Summary</Label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
-                <div className="p-3 rounded-lg bg-accent/50 text-center">
+                <div className="p-3 rounded-xl bg-accent/50 text-center border border-border">
                   <p className="text-xs text-muted-foreground">Working Days</p>
-                  <p className="text-lg font-bold">{attendanceData.workingDays}</p>
+                  <p className="text-xl font-bold">{attendanceData.workingDays}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-green-50 text-center">
+                <div className="p-3 rounded-xl bg-green-500/10 text-center border border-green-500/20">
                   <p className="text-xs text-muted-foreground">Present</p>
-                  <p className="text-lg font-bold text-green-700">{attendanceData.presentDays}</p>
+                  <p className="text-xl font-bold text-green-700">{attendanceData.presentDays}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-blue-50 text-center">
+                <div className="p-3 rounded-xl bg-primary/10 text-center border border-primary/20">
                   <p className="text-xs text-muted-foreground">Paid Leave</p>
-                  <p className="text-lg font-bold text-blue-700">{attendanceData.paidLeaveDays}</p>
+                  <p className="text-xl font-bold text-primary">{attendanceData.paidLeaveDays}</p>
                 </div>
-                <div className="p-3 rounded-lg bg-red-50 text-center">
+                <div className="p-3 rounded-xl bg-destructive/10 text-center border border-destructive/20">
                   <p className="text-xs text-muted-foreground">Unpaid Leave</p>
-                  <p className="text-lg font-bold text-red-700">{attendanceData.unpaidLeaveDays}</p>
+                  <p className="text-xl font-bold text-destructive">{attendanceData.unpaidLeaveDays}</p>
                 </div>
               </div>
             </div>
@@ -341,7 +358,7 @@ export function ProcessPayrollDialog({
             </div>
 
             {/* Statutory Deductions */}
-            {(config?.pf_enabled || config?.esic_enabled) && (
+            {(config?.pf_enabled || config?.esic_enabled || config?.pt_enabled) && (
               <>
                 <Separator />
                 <div className="space-y-2">
@@ -359,6 +376,12 @@ export function ProcessPayrollDialog({
                         <span>- ₹{Math.round(esicDeduction).toLocaleString()}</span>
                       </div>
                     )}
+                    {config?.pt_enabled && (
+                      <div className="flex justify-between text-destructive">
+                        <span>Professional Tax (PT)</span>
+                        <span>- ₹{Math.round(ptDeduction).toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
@@ -368,24 +391,26 @@ export function ProcessPayrollDialog({
 
             {/* Custom Adjustments */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Additions & Deductions</Label>
+              <Label className="text-sm font-medium">Custom Additions & Deductions</Label>
               
               {adjustments.length > 0 && (
                 <div className="space-y-2">
                   {adjustments.map((adj, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 rounded border border-border">
+                    <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border bg-accent/30">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-0.5 rounded ${adj.type === 'addition' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                          {adj.type === 'addition' ? '+' : '-'}
-                        </span>
-                        <span className="text-sm">{adj.name}</span>
+                        {adj.type === 'addition' ? (
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-destructive" />
+                        )}
+                        <span className="text-sm font-medium">{adj.name}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${adj.type === 'addition' ? 'text-green-600' : 'text-destructive'}`}>
+                        <span className={`text-sm font-semibold ${adj.type === 'addition' ? 'text-green-600' : 'text-destructive'}`}>
                           {adj.type === 'addition' ? '+' : '-'}₹{adj.amount.toLocaleString()}
                         </span>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeAdjustment(index)}>
-                          <Trash2 className="h-3 w-3" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeAdjustment(index)}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -407,14 +432,18 @@ export function ProcessPayrollDialog({
                   onChange={(e) => setNewAdjustment(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
                   className="w-28"
                 />
-                <select
+                <Select
                   value={newAdjustment.type}
-                  onChange={(e) => setNewAdjustment(prev => ({ ...prev, type: e.target.value as 'addition' | 'deduction' }))}
-                  className="px-2 border rounded-md text-sm bg-background"
+                  onValueChange={(value) => setNewAdjustment(prev => ({ ...prev, type: value as 'addition' | 'deduction' }))}
                 >
-                  <option value="addition">Add</option>
-                  <option value="deduction">Deduct</option>
-                </select>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="addition">Add</SelectItem>
+                    <SelectItem value="deduction">Deduct</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button variant="outline" size="icon" onClick={addAdjustment}>
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -424,7 +453,7 @@ export function ProcessPayrollDialog({
             <Separator />
 
             {/* Final Summary */}
-            <div className="p-4 rounded-lg bg-accent/50 space-y-2">
+            <div className="p-4 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Gross Salary</span>
                 <span>₹{Math.round(grossSalary).toLocaleString()}</span>
@@ -439,7 +468,7 @@ export function ProcessPayrollDialog({
                 <span>Total Deductions</span>
                 <span>- ₹{Math.round(totalDeductions).toLocaleString()}</span>
               </div>
-              <div className="flex justify-between text-lg font-bold border-t pt-2">
+              <div className="flex justify-between text-xl font-bold border-t border-primary/20 pt-3 mt-2">
                 <span>Net Salary</span>
                 <span className="text-green-600">₹{Math.round(netSalary).toLocaleString()}</span>
               </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Search, ArrowRight, Plus } from 'lucide-react';
+import { Building2, ArrowRight, Plus, KeyRound, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,61 +11,57 @@ import { toast } from 'sonner';
 const SelectCompany = () => {
   const navigate = useNavigate();
   const { setCompanyBySlug } = useCompany();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [companyCode, setCompanyCode] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; slug: string }>>([]);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [foundCompany, setFoundCompany] = useState<{ id: string; name: string; slug: string } | null>(null);
+  const [notFound, setNotFound] = useState(false);
 
-  // Escape special ILIKE characters to prevent SQL injection
-  const escapeILike = (str: string) => {
-    return str.replace(/[%_\\]/g, '\\$&');
-  };
-
-  const handleSearch = async () => {
-    const trimmed = searchQuery.trim();
+  const handleLookup = async () => {
+    const trimmed = companyCode.trim().toLowerCase();
 
     if (!trimmed) {
-      toast.error('Please enter a company name or code');
+      toast.error('Please enter your company code');
       return;
     }
 
-    // Validate input length
-    if (trimmed.length > 100) {
-      toast.error('Search query too long');
-      return;
-    }
-
-    // Allow only safe characters
-    if (!/^[a-zA-Z0-9\s\-_.]+$/.test(trimmed)) {
-      toast.error('Only letters, numbers, spaces, hyphens, and periods allowed');
+    // Validate input - only alphanumeric and hyphens allowed
+    if (!/^[a-z0-9-]+$/.test(trimmed)) {
+      toast.error('Company code can only contain letters, numbers, and hyphens');
       return;
     }
 
     setIsSearching(true);
-    setHasSearched(true);
+    setNotFound(false);
+    setFoundCompany(null);
 
     try {
-      const escapedQuery = escapeILike(trimmed);
+      // Exact match only - no partial search to prevent enumeration
       const { data, error } = await supabase
         .from('companies')
         .select('id, name, slug')
         .eq('is_active', true)
-        .or(`slug.ilike.%${escapedQuery}%,name.ilike.%${escapedQuery}%`)
-        .limit(10);
+        .eq('slug', trimmed)
+        .maybeSingle();
 
       if (error) throw error;
 
-      setSearchResults(data || []);
+      if (data) {
+        setFoundCompany(data);
+      } else {
+        setNotFound(true);
+      }
     } catch (err) {
-      console.error('Search error:', err);
-      toast.error('Failed to search companies');
+      console.error('Lookup error:', err);
+      toast.error('Failed to find company');
     } finally {
       setIsSearching(false);
     }
   };
 
-  const handleSelectCompany = async (slug: string) => {
-    const success = await setCompanyBySlug(slug);
+  const handleSelectCompany = async () => {
+    if (!foundCompany) return;
+    
+    const success = await setCompanyBySlug(foundCompany.slug);
     if (success) {
       navigate('/auth');
     } else {
@@ -78,74 +74,101 @@ const SelectCompany = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <Building2 className="h-6 w-6 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+      <div className="w-full max-w-md space-y-6">
+        {/* Hero Section */}
+        <div className="text-center space-y-2">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/60 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
+            <Sparkles className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">Find Your Company</CardTitle>
-          <CardDescription>
-            Enter your company name or code to continue
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="Company name or code..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            <Button onClick={handleSearch} disabled={isSearching}>
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
+          <h1 className="text-3xl font-bold text-foreground">Welcome to WorkFlow</h1>
+          <p className="text-muted-foreground">Modern HR management for growing teams</p>
+        </div>
 
-          {hasSearched && (
-            <div className="space-y-2">
-              {searchResults.length > 0 ? (
-                searchResults.map((company) => (
-                  <button
-                    key={company.id}
-                    onClick={() => handleSelectCompany(company.slug)}
-                    className="w-full p-3 text-left rounded-lg border border-border hover:bg-accent transition-colors flex items-center justify-between group"
-                  >
-                    <div>
-                      <p className="font-medium">{company.name}</p>
-                      <p className="text-sm text-muted-foreground">{company.slug}</p>
+        <Card className="border-0 shadow-xl">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-xl flex items-center justify-center gap-2">
+              <KeyRound className="h-5 w-5 text-primary" />
+              Enter Company Code
+            </CardTitle>
+            <CardDescription>
+              Your admin should have provided you with a company code
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <Input
+                placeholder="e.g., smart-hirez"
+                value={companyCode}
+                onChange={(e) => {
+                  setCompanyCode(e.target.value.toLowerCase());
+                  setFoundCompany(null);
+                  setNotFound(false);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleLookup()}
+                className="h-12 text-center text-lg font-mono"
+              />
+              <Button 
+                onClick={handleLookup} 
+                disabled={isSearching || !companyCode.trim()} 
+                className="w-full h-11"
+              >
+                {isSearching ? 'Looking up...' : 'Find My Company'}
+              </Button>
+            </div>
+
+            {foundCompany && (
+              <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <Building2 className="h-5 w-5 text-green-600" />
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                  </button>
-                ))
-              ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  <p>No companies found</p>
-                  <p className="text-sm mt-1">Try a different search or create a new company</p>
+                    <div>
+                      <p className="font-semibold text-foreground">{foundCompany.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{foundCompany.slug}</p>
+                    </div>
+                  </div>
+                  <Button onClick={handleSelectCompany} size="sm" className="gap-1">
+                    Continue <ArrowRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">Or</span>
-            </div>
-          </div>
+            {notFound && (
+              <div className="mt-4 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-center">
+                <p className="text-sm text-destructive font-medium">Company not found</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Please check the code and try again, or contact your administrator
+                </p>
+              </div>
+            )}
 
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleCreateCompany}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Register New Company
-          </Button>
-        </CardContent>
-      </Card>
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-3 text-muted-foreground">or</span>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full h-11"
+              onClick={handleCreateCompany}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Register New Company
+            </Button>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-xs text-muted-foreground">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </p>
+      </div>
     </div>
   );
 };

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Settings2, Shield, Clock, Plus, Trash2 } from 'lucide-react';
+import { Settings2, Shield, Clock, Plus, Trash2, Calculator } from 'lucide-react';
 import { HolidayCalendar } from '@/components/settings/HolidayCalendar';
 
 interface PayrollConfig {
@@ -18,6 +18,8 @@ interface PayrollConfig {
   esic_percentage: number;
   epf_enabled: boolean;
   epf_percentage: number;
+  pt_enabled: boolean;
+  pt_amount: number;
 }
 
 interface WorkSession {
@@ -41,6 +43,8 @@ export default function Settings() {
     esic_percentage: 0.75,
     epf_enabled: false,
     epf_percentage: 12,
+    pt_enabled: false,
+    pt_amount: 200,
   });
 
   useEffect(() => {
@@ -57,7 +61,7 @@ export default function Settings() {
         .maybeSingle();
 
       if (data?.setting_value) {
-        setConfig(data.setting_value as unknown as PayrollConfig);
+        setConfig(prev => ({ ...prev, ...(data.setting_value as unknown as PayrollConfig) }));
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -149,6 +153,14 @@ export default function Settings() {
     }
   };
 
+  // Calculate preview values
+  const baseSalary = 50000;
+  const pfAmount = config.pf_enabled ? baseSalary * config.pf_percentage / 100 : 0;
+  const esicAmount = config.esic_enabled ? baseSalary * config.esic_percentage / 100 : 0;
+  const ptAmount = config.pt_enabled ? config.pt_amount : 0;
+  const totalDeductions = pfAmount + esicAmount + ptAmount;
+  const netSalary = baseSalary - totalDeductions;
+
   if (role !== 'owner' && role !== 'admin') {
     return (
       <AppLayout>
@@ -175,7 +187,7 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
+              <Clock className="h-5 w-5 text-primary" />
               Work Sessions
             </CardTitle>
             <CardDescription>
@@ -185,7 +197,7 @@ export default function Settings() {
           <CardContent className="space-y-4">
             <div className="space-y-3">
               {workSessions.map((session) => (
-                <div key={session.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                <div key={session.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-accent/30">
                   <div>
                     <p className="font-medium text-foreground">{session.name}</p>
                     <p className="text-sm text-muted-foreground">
@@ -202,6 +214,9 @@ export default function Settings() {
                   </Button>
                 </div>
               ))}
+              {workSessions.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No work sessions defined yet</p>
+              )}
             </div>
             <div className="pt-4 border-t border-border">
               <Label className="text-sm font-medium mb-3 block">Add New Session</Label>
@@ -234,20 +249,20 @@ export default function Settings() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Settings2 className="h-5 w-5" />
+              <Settings2 className="h-5 w-5 text-primary" />
               Statutory Deductions
             </CardTitle>
             <CardDescription>
-              Configure PF, ESIC, and EPF deductions. These will be automatically calculated during payroll processing.
+              Configure PF, ESIC, PT and other deductions. These will be automatically calculated during payroll processing.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {loading ? (
               <p className="text-muted-foreground">Loading...</p>
             ) : (
               <>
                 {/* PF Configuration */}
-                <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-accent/30">
                   <div className="space-y-1">
                     <div className="flex items-center gap-3">
                       <Switch
@@ -272,7 +287,7 @@ export default function Settings() {
                 </div>
 
                 {/* ESIC Configuration */}
-                <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-accent/30">
                   <div className="space-y-1">
                     <div className="flex items-center gap-3">
                       <Switch
@@ -296,8 +311,32 @@ export default function Settings() {
                   </div>
                 </div>
 
+                {/* PT Configuration */}
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-accent/30">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <Switch
+                        checked={config.pt_enabled}
+                        onCheckedChange={(checked) => setConfig(prev => ({ ...prev, pt_enabled: checked }))}
+                      />
+                      <Label className="text-base font-medium">Professional Tax (PT)</Label>
+                    </div>
+                    <p className="text-sm text-muted-foreground ml-12">State-level professional tax deduction</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">₹</span>
+                    <Input
+                      type="number"
+                      value={config.pt_amount}
+                      onChange={(e) => setConfig(prev => ({ ...prev, pt_amount: parseFloat(e.target.value) || 0 }))}
+                      className="w-24 text-right"
+                      disabled={!config.pt_enabled}
+                    />
+                  </div>
+                </div>
+
                 {/* EPF Configuration */}
-                <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+                <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-accent/30">
                   <div className="space-y-1">
                     <div className="flex items-center gap-3">
                       <Switch
@@ -333,7 +372,10 @@ export default function Settings() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Calculation Preview</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-primary" />
+              Calculation Preview
+            </CardTitle>
             <CardDescription>
               Example calculation for ₹50,000 base salary
             </CardDescription>
@@ -342,33 +384,36 @@ export default function Settings() {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-border">
                 <span className="text-muted-foreground">Base Salary</span>
-                <span className="font-medium">₹50,000</span>
+                <span className="font-medium">₹{baseSalary.toLocaleString()}</span>
               </div>
               {config.pf_enabled && (
                 <div className="flex justify-between py-2 border-b border-border text-destructive">
                   <span>PF Deduction ({config.pf_percentage}%)</span>
-                  <span>- ₹{Math.round(50000 * config.pf_percentage / 100).toLocaleString()}</span>
+                  <span>- ₹{Math.round(pfAmount).toLocaleString()}</span>
                 </div>
               )}
               {config.esic_enabled && (
                 <div className="flex justify-between py-2 border-b border-border text-destructive">
                   <span>ESIC Deduction ({config.esic_percentage}%)</span>
-                  <span>- ₹{Math.round(50000 * config.esic_percentage / 100).toLocaleString()}</span>
+                  <span>- ₹{Math.round(esicAmount).toLocaleString()}</span>
                 </div>
               )}
-              <div className="flex justify-between py-2 font-semibold text-base">
+              {config.pt_enabled && (
+                <div className="flex justify-between py-2 border-b border-border text-destructive">
+                  <span>Professional Tax</span>
+                  <span>- ₹{config.pt_amount.toLocaleString()}</span>
+                </div>
+              )}
+              <div className="flex justify-between py-3 font-semibold text-base bg-accent/50 rounded-lg px-3 -mx-3">
                 <span>Net Salary</span>
                 <span className="text-green-600">
-                  ₹{(50000 - 
-                    (config.pf_enabled ? 50000 * config.pf_percentage / 100 : 0) - 
-                    (config.esic_enabled ? 50000 * config.esic_percentage / 100 : 0)
-                  ).toLocaleString()}
+                  ₹{Math.round(netSalary).toLocaleString()}
                 </span>
               </div>
               {config.epf_enabled && (
-                <div className="mt-4 p-3 rounded-lg bg-accent/50">
+                <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
                   <p className="text-sm text-muted-foreground">
-                    <strong>Employer EPF Contribution:</strong> ₹{Math.round(50000 * config.epf_percentage / 100).toLocaleString()} (not deducted from employee salary)
+                    <strong className="text-foreground">Employer EPF Contribution:</strong> ₹{Math.round(baseSalary * config.epf_percentage / 100).toLocaleString()} (not deducted from employee salary)
                   </p>
                 </div>
               )}

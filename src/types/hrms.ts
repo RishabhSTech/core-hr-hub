@@ -20,6 +20,7 @@ export interface Profile {
   email: string;
   phone: string | null;
   address: string | null;
+  company_id: string | null;
   department_id: string | null;
   reporting_manager_id: string | null;
   date_of_joining: string | null;
