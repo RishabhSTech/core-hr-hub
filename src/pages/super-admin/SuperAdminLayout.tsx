@@ -12,7 +12,8 @@ import {
   X,
   Bell,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Package
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -26,7 +27,8 @@ const navItems = [
   { href: '/super-admin', icon: LayoutDashboard, label: 'Dashboard', description: 'Overview & metrics' },
   { href: '/super-admin/companies', icon: Building2, label: 'Companies', description: 'Manage organizations' },
   { href: '/super-admin/users', icon: Users, label: 'Users', description: 'User management' },
-  { href: '/super-admin/subscriptions', icon: CreditCard, label: 'Subscriptions', description: 'Billing & plans' },
+  { href: '/super-admin/subscriptions', icon: CreditCard, label: 'Subscriptions', description: 'Billing overview' },
+  { href: '/super-admin/plans', icon: Package, label: 'Plans', description: 'Pricing & tiers' },
   { href: '/super-admin/settings', icon: Settings, label: 'Settings', description: 'System configuration' },
 ];
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Building2, Search, MoreHorizontal, Eye, Ban, CheckCircle } from 'lucide-react';
+import { Building2, Search, MoreHorizontal, Eye, Ban, CheckCircle, Edit2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import SuperAdminLayout from './SuperAdminLayout';
+import { EditCompanyDialog } from '@/components/super-admin/EditCompanyDialog';
 import { Company } from '@/types/saas';
 import { format } from 'date-fns';
 
@@ -34,6 +35,8 @@ const SuperAdminCompanies = () => {
   const [companies, setCompanies] = useState<CompanyWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchCompanies();
@@ -95,6 +98,11 @@ const SuperAdminCompanies = () => {
       console.error('Failed to toggle company status:', err);
       toast.error('Failed to update company');
     }
+  };
+
+  const openEditDialog = (company: CompanyWithStats) => {
+    setEditingCompany(company);
+    setEditDialogOpen(true);
   };
 
   const filteredCompanies = companies.filter(
@@ -188,6 +196,10 @@ const SuperAdminCompanies = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEditDialog(company)}>
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Edit Company
+                            </DropdownMenuItem>
                             <DropdownMenuItem>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
@@ -224,6 +236,13 @@ const SuperAdminCompanies = () => {
             )}
           </CardContent>
         </Card>
+
+        <EditCompanyDialog
+          company={editingCompany}
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSuccess={fetchCompanies}
+        />
       </div>
     </SuperAdminLayout>
   );

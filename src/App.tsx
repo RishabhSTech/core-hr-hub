@@ -15,6 +15,7 @@ import EmployeeProfile from "./pages/EmployeeProfile";
 import Attendance from "./pages/Attendance";
 import Leaves from "./pages/Leaves";
 import Payroll from "./pages/Payroll";
+import Billing from "./pages/Billing";
 import OrgChart from "./pages/OrgChart";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
@@ -26,6 +27,7 @@ import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import SuperAdminCompanies from "./pages/super-admin/SuperAdminCompanies";
 import SuperAdminUsers from "./pages/super-admin/SuperAdminUsers";
 import SuperAdminSubscriptions from "./pages/super-admin/SuperAdminSubscriptions";
+import SuperAdminPlans from "./pages/super-admin/SuperAdminPlans";
 import SuperAdminSettings from "./pages/super-admin/SuperAdminSettings";
 
 const queryClient = new QueryClient();
@@ -69,6 +71,7 @@ function AppRoutes() {
       <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
       <Route path="/leaves" element={<ProtectedRoute><Leaves /></ProtectedRoute>} />
       <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} />
+      <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
       <Route path="/org-chart" element={<ProtectedRoute><OrgChart /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -79,6 +82,7 @@ function AppRoutes() {
       <Route path="/super-admin/companies" element={<SuperAdminCompanies />} />
       <Route path="/super-admin/users" element={<SuperAdminUsers />} />
       <Route path="/super-admin/subscriptions" element={<SuperAdminSubscriptions />} />
+      <Route path="/super-admin/plans" element={<SuperAdminPlans />} />
       <Route path="/super-admin/settings" element={<SuperAdminSettings />} />
       
       <Route path="*" element={<NotFound />} />

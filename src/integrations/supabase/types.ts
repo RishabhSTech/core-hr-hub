@@ -472,6 +472,45 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          base_price: number
+          created_at: string
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          max_employees: number
+          name: string
+          plan_type: Database["public"]["Enums"]["plan_type"]
+          price_per_employee: number
+          updated_at: string
+        }
+        Insert: {
+          base_price?: number
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_employees?: number
+          name: string
+          plan_type: Database["public"]["Enums"]["plan_type"]
+          price_per_employee?: number
+          updated_at?: string
+        }
+        Update: {
+          base_price?: number
+          created_at?: string
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          max_employees?: number
+          name?: string
+          plan_type?: Database["public"]["Enums"]["plan_type"]
+          price_per_employee?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -572,6 +611,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          base_price: number | null
           company_id: string
           created_at: string | null
           current_period_end: string | null
@@ -579,12 +619,14 @@ export type Database = {
           id: string
           max_employees: number | null
           plan_type: Database["public"]["Enums"]["plan_type"] | null
+          price_per_employee: number | null
           status: Database["public"]["Enums"]["subscription_status"] | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           updated_at: string | null
         }
         Insert: {
+          base_price?: number | null
           company_id: string
           created_at?: string | null
           current_period_end?: string | null
@@ -592,12 +634,14 @@ export type Database = {
           id?: string
           max_employees?: number | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          price_per_employee?: number | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          base_price?: number | null
           company_id?: string
           created_at?: string | null
           current_period_end?: string | null
@@ -605,6 +649,7 @@ export type Database = {
           id?: string
           max_employees?: number | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          price_per_employee?: number | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
