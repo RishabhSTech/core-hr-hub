@@ -111,7 +111,7 @@ export default function Index() {
 
   const testimonials = [
     {
-      quote: "WorkFlow cut our payroll processing time from 2 days to 30 minutes. Game changer for our HR team.",
+      quote: "CoreHR cut our payroll processing time from 2 days to 30 minutes. Game changer for our HR team.",
       author: "Priya Sharma",
       role: "HR Manager",
       company: "TechStart India",
@@ -135,7 +135,7 @@ export default function Index() {
 
   const faqs = [
     {
-      question: "How long does it take to set up WorkFlow?",
+      question: "How long does it take to set up CoreHR?",
       answer: "Most companies are up and running within 30 minutes. Simply register your company, add your employees, and you're ready to go. We also offer free onboarding support if you need help migrating from Excel or another system."
     },
     {
@@ -143,12 +143,12 @@ export default function Index() {
       answer: "Absolutely. We use bank-grade encryption (AES-256) for all data at rest and in transit. Your data is stored in secure, SOC 2 compliant data centers. We never share or sell your data to third parties."
     },
     {
-      question: "Can I try WorkFlow before committing?",
+      question: "Can I try CoreHR before committing?",
       answer: "Yes! We offer a 14-day free trial on all plans with full access to all features. No credit card required to start. You can also use our Free plan indefinitely for teams up to 10 employees."
     },
     {
       question: "How does payroll calculation work?",
-      answer: "WorkFlow automatically calculates salaries based on attendance records, approved leaves, and your configured salary structure. It handles PF, ESI, PT, and TDS deductions. You can also add custom allowances and deductions per employee."
+      answer: "CoreHR automatically calculates salaries based on attendance records, approved leaves, and your configured salary structure. It handles PF, ESI, PT, and TDS deductions. You can also add custom allowances and deductions per employee."
     },
     {
       question: "Can employees access the system themselves?",
@@ -355,9 +355,12 @@ export default function Index() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-600 text-primary-foreground font-bold shadow-lg shadow-primary/25">
-              W
+              C
             </div>
-            <span className="font-bold text-xl text-foreground">WorkFlow</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-xl text-foreground leading-tight">CoreHR</span>
+              <span className="text-[10px] text-muted-foreground leading-none">by Shrijan Technologies</span>
+            </div>
           </div>
           <nav className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Features</a>
@@ -801,9 +804,12 @@ export default function Index() {
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-600 text-primary-foreground font-bold">
-              W
+              C
             </div>
-            <span className="font-bold text-foreground">WorkFlow</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-foreground leading-tight">CoreHR</span>
+              <span className="text-[10px] text-muted-foreground leading-none">by Shrijan Technologies</span>
+            </div>
           </div>
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-primary transition-colors">Features</a>
@@ -812,7 +818,7 @@ export default function Index() {
             <a href="#" className="hover:text-primary transition-colors">Privacy</a>
           </div>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} WorkFlow HRMS
+            © {new Date().getFullYear()} CoreHR by Shrijan Technologies
           </p>
         </div>
       </footer>
