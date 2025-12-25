@@ -545,7 +545,7 @@ export default function Index() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground mb-1">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <p className="text-sm text-foreground/70">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -578,7 +578,7 @@ export default function Index() {
                   <feature.icon className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <h3 className="relative text-lg font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="relative text-muted-foreground">{feature.description}</p>
+                <p className="relative text-foreground/70">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -607,7 +607,7 @@ export default function Index() {
                 {i < 2 && <ChevronRight className="hidden md:block h-6 w-6 text-muted-foreground absolute translate-x-[140px]" />}
                 <div>
                   <h3 className="font-semibold text-foreground mb-1">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground">{step.desc}</p>
+                  <p className="text-sm text-foreground/70">{step.desc}</p>
                 </div>
               </div>
             ))}
