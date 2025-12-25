@@ -8,7 +8,8 @@ import {
   LogOut,
   User,
   ChevronRight,
-  Settings
+  Settings,
+  CreditCard
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,9 +41,12 @@ const getNavItems = (role: string | null, isAdmin: boolean) => {
       { title: 'Leave Management', url: '/leaves', icon: Calendar },
     ];
     
-    // Only owner can see Payroll
+    // Only owner can see Payroll and Billing
     if (role === 'owner') {
-      adminItems.push({ title: 'Payroll', url: '/payroll', icon: DollarSign });
+      adminItems.push(
+        { title: 'Payroll', url: '/payroll', icon: DollarSign },
+        { title: 'Billing', url: '/billing', icon: CreditCard }
+      );
     }
     
     adminItems.push(
