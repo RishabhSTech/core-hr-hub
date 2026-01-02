@@ -109,11 +109,16 @@ export default function Dashboard() {
     }
   };
 
-  const handleRejectLeave = async (id: string) => {
+  const handleRejectLeave = async (id: string, reason?: string) => {
     try {
       const { error } = await supabase
         .from('leave_requests')
-        .update({ status: 'rejected', approved_by: user?.id, approved_at: new Date().toISOString() })
+        .update({ 
+          status: 'rejected', 
+          approved_by: user?.id, 
+          approved_at: new Date().toISOString(),
+          rejection_reason: reason || null
+        })
         .eq('id', id);
 
       if (error) throw error;

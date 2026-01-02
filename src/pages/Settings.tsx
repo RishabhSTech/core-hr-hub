@@ -10,6 +10,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Settings2, Shield, Clock, Plus, Trash2, Calculator } from 'lucide-react';
 import { HolidayCalendar } from '@/components/settings/HolidayCalendar';
+import { z } from 'zod';
+
+// Validation schema for work sessions
+const sessionSchema = z.object({
+  name: z.string().min(1, 'Session name is required').max(50, 'Session name must be less than 50 characters'),
+  start_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid start time format'),
+  end_time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Invalid end time format'),
+}).refine(
+  (data) => data.start_time < data.end_time,
+  { message: 'End time must be after start time' }
+);
 
 interface PayrollConfig {
   pf_enabled: boolean;
@@ -79,13 +90,16 @@ export default function Settings() {
   };
 
   const handleAddSession = async () => {
-    if (!newSession.name.trim()) {
-      toast.error('Please enter a session name');
+    // Validate with Zod schema
+    const validation = sessionSchema.safeParse(newSession);
+    if (!validation.success) {
+      const firstError = validation.error.errors[0];
+      toast.error(firstError.message);
       return;
     }
 
     const { error } = await supabase.from('work_sessions').insert([{
-      name: newSession.name,
+      name: newSession.name.trim(),
       start_time: newSession.start_time,
       end_time: newSession.end_time,
     }]);

@@ -50,12 +50,19 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
   const [showResults, setShowResults] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Generate a secure random temporary password
+  const generateTempPassword = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  };
+
   const downloadTemplate = () => {
     const headers = ['email', 'password', 'first_name', 'last_name', 'role', 'department', 'monthly_salary', 'phone'];
+    // Generate unique temporary passwords for each sample row
     const sampleData = [
-      ['john@company.com', 'password123', 'John', 'Doe', 'employee', 'Engineering', '50000', '9876543210'],
-      ['jane@company.com', 'password123', 'Jane', 'Smith', 'manager', 'Marketing', '75000', '9876543211'],
-      ['mike@company.com', 'password123', 'Mike', 'Johnson', 'employee', 'Sales', '45000', '9876543212'],
+      ['john@company.com', generateTempPassword(), 'John', 'Doe', 'employee', 'Engineering', '50000', '9876543210'],
+      ['jane@company.com', generateTempPassword(), 'Jane', 'Smith', 'manager', 'Marketing', '75000', '9876543211'],
+      ['mike@company.com', generateTempPassword(), 'Mike', 'Johnson', 'employee', 'Sales', '45000', '9876543212'],
     ];
 
     const csvContent = [
@@ -70,7 +77,7 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
     a.download = 'employee_template.csv';
     a.click();
     window.URL.revokeObjectURL(url);
-    toast.success('Template downloaded');
+    toast.success('Template downloaded - Remember to change passwords before importing!');
   };
 
   const parseCSV = (text: string): CSVRow[] => {
@@ -289,7 +296,8 @@ export function CSVUploadDialog({ departments, onSuccess }: CSVUploadDialogProps
               <p className="text-xs text-amber-700">
                 <strong>Required columns:</strong> email, password, first_name, last_name<br />
                 <strong>Optional:</strong> role (employee/manager/admin), department, monthly_salary, phone<br />
-                <strong>Limits:</strong> Max {MAX_ROWS} employees, {MAX_FILE_SIZE / 1024}KB file size
+                <strong>Limits:</strong> Max {MAX_ROWS} employees, {MAX_FILE_SIZE / 1024}KB file size<br />
+                <strong className="text-red-600">⚠️ Important:</strong> Change the template passwords before importing!
               </p>
             </div>
 
