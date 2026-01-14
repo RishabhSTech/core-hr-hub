@@ -81,7 +81,7 @@ const SelectCompany = () => {
           <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-primary/60 rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-primary/20">
             <Sparkles className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Welcome to WorkFlow</h1>
+          <h1 className="text-3xl font-bold text-foreground">Welcome to CoreHR</h1>
           <p className="text-muted-foreground">Modern HR management for growing teams</p>
         </div>
 

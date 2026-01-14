@@ -115,7 +115,7 @@ const SuperAdminLayout = ({ children }: SuperAdminLayoutProps) => {
                   <Shield className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <span className="font-bold text-lg text-white">WorkFlow</span>
+                  <span className="font-bold text-lg text-white">CoreHR</span>
                   <p className="text-xs text-purple-200/50">Administration</p>
                 </div>
               </div>
