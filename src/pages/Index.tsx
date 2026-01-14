@@ -369,12 +369,6 @@ export default function Index() {
             <a href="#faq" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/super-admin/login" className="hidden sm:block">
-              <Button variant="ghost" size="sm">
-                <Shield className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
             <Button variant="outline" size="sm" onClick={() => navigate('/select-company')}>
               Sign In
             </Button>
@@ -454,7 +448,7 @@ export default function Index() {
                     <div className="w-3 h-3 rounded-full bg-emerald-500/60" />
                   </div>
                   <div className="flex-1 h-6 bg-muted/50 rounded-md flex items-center px-3">
-                    <span className="text-xs text-muted-foreground">app.workflow.com/dashboard</span>
+                    <span className="text-xs text-muted-foreground">app.corehr.com/dashboard</span>
                   </div>
                 </div>
                 
@@ -774,7 +768,7 @@ export default function Index() {
                 Stop Managing HR the Hard Way
               </h2>
               <p className="text-lg text-secondary-foreground/80">
-                Join 500+ companies that trust WorkFlow. Start free today.
+                Join 500+ companies that trust CoreHR. Start free today.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
                 <Button 
