@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Database } from '@/integrations/supabase/types';
+import { useCompany } from '@/contexts/CompanyContext';
 
 type AttendanceStatus = Database['public']['Enums']['attendance_status'];
 
@@ -31,6 +32,7 @@ interface AddAttendanceDialogProps {
 }
 
 export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, onSuccess }: AddAttendanceDialogProps) {
+  const { company } = useCompany();
   const [loading, setLoading] = useState(false);
   const [workSessions, setWorkSessions] = useState<WorkSession[]>([]);
   const [mode, setMode] = useState<'single' | 'range'>('single');
@@ -100,6 +102,7 @@ export function AddAttendanceDialog({ open, onOpenChange, userId, employeeName, 
           sign_out_time: `${dateStr}T${selectedSession.end_time}`,
           status,
           session_id: sessionId,
+          company_id: company?.id,
         };
       });
 
