@@ -11,6 +11,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface Holiday {
   id: string;
@@ -24,18 +25,24 @@ interface HolidayCalendarProps {
 }
 
 export function HolidayCalendar({ onUpdate }: HolidayCalendarProps) {
+  const { company } = useCompany();
   const [holidays, setHolidays] = useState<Holiday[]>([]);
   const [loading, setLoading] = useState(true);
   const [newHoliday, setNewHoliday] = useState({ name: '', date: undefined as Date | undefined, type: 'public' });
 
   useEffect(() => {
-    fetchHolidays();
-  }, []);
+    if (company?.id) {
+      fetchHolidays();
+    }
+  }, [company?.id]);
 
   const fetchHolidays = async () => {
+    if (!company?.id) return;
+    
     const { data } = await supabase
       .from('holidays')
       .select('*')
+      .eq('company_id', company.id)
       .order('date');
     
     if (data) {
@@ -50,10 +57,16 @@ export function HolidayCalendar({ onUpdate }: HolidayCalendarProps) {
       return;
     }
 
+    if (!company?.id) {
+      toast.error('No company selected');
+      return;
+    }
+
     const { error } = await supabase.from('holidays').insert([{
       name: newHoliday.name,
       date: format(newHoliday.date, 'yyyy-MM-dd'),
       type: newHoliday.type,
+      company_id: company.id,
     }]);
 
     if (error) {
