@@ -4,7 +4,7 @@ import { AttendanceCalendar } from '@/components/attendance/AttendanceCalendar';
 import { AttendanceActions } from '@/components/attendance/AttendanceActions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAttendance, useAttendanceReport } from '@/hooks/useAttendance';
+import { useAttendance } from '@/hooks/useAttendance';
 import { startOfMonth, endOfMonth, format, isSameDay } from 'date-fns';
 import { QueryErrorHandler } from '@/components/QueryErrorHandler';
 import { CardSkeleton } from '@/components/Skeleton';
@@ -28,18 +28,6 @@ export default function Attendance() {
     endDate: monthEnd
   });
 
-  // Fetch attendance report/stats
-  const {
-    data: reportData,
-    isLoading: reportLoading,
-    error: reportError,
-    refetch: refetchReport
-  } = useAttendanceReport({
-    userId: user?.id,
-    month: now.getMonth() + 1,
-    year: now.getFullYear()
-  });
-
   // Calculate stats efficiently
   const stats = useMemo(() => {
     const sessions = sessionData?.data || [];
@@ -47,6 +35,7 @@ export default function Attendance() {
     const presentCount = sessions.filter(s => s.status === 'present').length;
     const halfDayCount = sessions.filter(s => s.status === 'half_day').length;
     const lateCount = sessions.filter(s => s.status === 'late').length;
+    const absentCount = sessions.filter(s => s.status === 'absent').length;
     
     let totalHours = 0;
     sessions.forEach(s => {
@@ -59,11 +48,11 @@ export default function Attendance() {
 
     return {
       presentDays: presentCount + lateCount,
-      absentDays: (reportData?.absentDays || 0),
+      absentDays: absentCount,
       halfDays: halfDayCount,
       totalHours: Math.round(totalHours * 10) / 10,
     };
-  }, [sessionData?.data, reportData?.absentDays]);
+  }, [sessionData?.data]);
 
   // Find current session
   const currentSession = useMemo(() => {
@@ -74,11 +63,10 @@ export default function Attendance() {
 
   const handleRefresh = () => {
     refetchSessions();
-    refetchReport();
   };
 
-  const isLoading = sessionsLoading || reportLoading;
-  const hasError = sessionsError || reportError;
+  const isLoading = sessionsLoading;
+  const hasError = sessionsError;
 
   return (
     <ErrorBoundary>
@@ -94,7 +82,7 @@ export default function Attendance() {
 
           {/* Error Handler */}
           <QueryErrorHandler 
-            error={hasError ? sessionsError || reportError : null} 
+            error={hasError ? (sessionsError as Error) : null} 
             onRetry={handleRefresh} 
           />
 

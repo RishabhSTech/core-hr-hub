@@ -1,5 +1,5 @@
 // src/services/index.ts
-export { baseService, BaseService } from './baseService';
+export { BaseService } from './baseService';
 export { employeeService } from './employeeService';
 export { payrollService } from './payrollService';
 export { attendanceService } from './attendanceService';

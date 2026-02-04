@@ -119,7 +119,6 @@ export default function Dashboard() {
               </div>
               <LeaveRequestsWidget
                 requests={pendingLeaves || []}
-                isLoading={pendingLoading}
                 isAdmin={isAdmin}
               />
             </div>
@@ -129,7 +128,8 @@ export default function Dashboard() {
             <div className="lg:col-span-2 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <AttendanceActions 
-                  currentSession={currentSession as AttendanceSession | null | undefined} 
+                  currentSession={currentSession as AttendanceSession | null | undefined}
+                  onSessionUpdate={() => {}}
                 />
                 {leaveBalanceLoading ? <CardSkeleton /> : (
                   <LeaveBalance balance={leaveBalance} />
